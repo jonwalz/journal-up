@@ -1,0 +1,16 @@
+name = "your-elysia-app"
+main = "src/index.ts"
+compatibility_date = "2023-01-01"
+
+[build]
+command = "bun run build"
+
+[vars]
+NODE_ENV = "production"
+
+# Secrets should be set using `wrangler secret put <NAME>`
+# Required secrets:
+# - DATABASE_URL
+# - JWT_SECRET
+# - ZEP_API_URL
+# - ZEP_API_KEY

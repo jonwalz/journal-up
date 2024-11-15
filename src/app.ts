@@ -4,7 +4,7 @@ import { cors } from "@elysiajs/cors";
 import { jwt } from "@elysiajs/jwt";
 import { env } from "./config/environment";
 
-export const app = new Elysia()
+export const app = new Elysia({ aot: false })
   .use(
     swagger({
       documentation: {

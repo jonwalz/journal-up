@@ -1,4 +1,4 @@
-import { ZepClient } from "zep-js";
+import { ZepClient } from "@getzep/zep-cloud";
 import type {
   AIResponse,
   GrowthIndicator,
@@ -9,19 +9,33 @@ import { env } from "../config/environment";
 import type { IEntry } from "../types";
 import { AppError } from "../utils/errors";
 
+interface Message {
+  content: string;
+  role?: string;
+  metadata?: Record<string, any>;
+}
+
+interface SearchResult {
+  message?: Message | string;
+  score?: number;
+  metadata?: Record<string, any>;
+}
+
 export class AIService {
   private zepClient: ZepClient;
   private readonly COLLECTION_NAME = "journal_entries";
 
   constructor() {
-    this.zepClient = new ZepClient(env.ZEP_API_URL, env.ZEP_API_KEY);
+    this.zepClient = new ZepClient({
+      apiKey: env.ZEP_API_KEY,
+    });
   }
 
   async initializeUserMemory(userId: string): Promise<void> {
     try {
-      await this.zepClient.searchMemory(this.COLLECTION_NAME, {
+      await this.zepClient.memory.search(this.COLLECTION_NAME, {
         text: `Initializing memory for user ${userId}`,
-        meta: {
+        metadata: {
           type: "initialization",
           userId,
         },
@@ -37,18 +51,21 @@ export class AIService {
 
   async searchMemory(query: string): Promise<MemorySearchResult> {
     try {
-      const response = await this.zepClient.searchMemory(this.COLLECTION_NAME, {
-        text: query,
-        meta: {
-          type: "search",
-        },
-      });
+      const memories = await this.zepClient.memory.search(
+        this.COLLECTION_NAME,
+        {
+          text: query,
+          metadata: {
+            type: "search",
+          },
+        }
+      );
 
       return {
-        relevantMemories: response
-          .map((r) => r.message?.content)
+        relevantMemories: memories
+          .map((r) => this.extractMessageContent(r.message))
           .filter((content): content is string => content !== undefined),
-        score: response[0]?.dist || 0,
+        score: memories[0]?.score || 0,
       };
     } catch (error) {
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
@@ -60,16 +77,27 @@ export class AIService {
     growthIndicators: GrowthIndicator[];
   }> {
     try {
-      const response = await this.zepClient.searchMemory(this.COLLECTION_NAME, {
-        text: entry.content,
-        meta: {
-          type: "analysis",
-          entryId: entry.id,
-        },
-      });
+      const memories = await this.zepClient.memory.search(
+        this.COLLECTION_NAME,
+        {
+          text: entry.content,
+          metadata: {
+            type: "analysis",
+            entryId: entry.id,
+          },
+        }
+      );
 
-      const sentiment = this.extractSentiment(response[0]);
-      const growthIndicators = this.extractGrowthIndicators(response[0]);
+      if (!memories[0]) {
+        throw new AppError(
+          500,
+          "AI_SERVICE_ERROR",
+          "No analysis results found"
+        );
+      }
+
+      const sentiment = this.extractSentiment(memories[0]);
+      const growthIndicators = this.extractGrowthIndicators(memories[0]);
 
       return {
         sentiment,
@@ -85,15 +113,26 @@ export class AIService {
     growthIndicators: GrowthIndicator[];
   }> {
     try {
-      const response = await this.zepClient.searchMemory(this.COLLECTION_NAME, {
-        text: content,
-        meta: {
-          type: "analysis",
-        },
-      });
+      const memories = await this.zepClient.memory.search(
+        this.COLLECTION_NAME,
+        {
+          text: content,
+          metadata: {
+            type: "analysis",
+          },
+        }
+      );
 
-      const sentiment = this.extractSentiment(response[0]);
-      const growthIndicators = this.extractGrowthIndicators(response[0]);
+      if (!memories[0]) {
+        throw new AppError(
+          500,
+          "AI_SERVICE_ERROR",
+          "No analysis results found"
+        );
+      }
+
+      const sentiment = this.extractSentiment(memories[0]);
+      const growthIndicators = this.extractGrowthIndicators(memories[0]);
 
       return {
         sentiment,
@@ -110,23 +149,40 @@ export class AIService {
 
   async chat(userId: string, message: string): Promise<AIResponse> {
     try {
-      const response = await this.zepClient.searchMemory(this.COLLECTION_NAME, {
-        text: message,
-        meta: {
-          type: "chat",
-          userId,
-        },
-      });
+      const memories = await this.zepClient.memory.search(
+        this.COLLECTION_NAME,
+        {
+          text: message,
+          metadata: {
+            type: "chat",
+            userId,
+          },
+        }
+      );
 
-      const relevantContent = response[0]?.message?.content;
-      const growthIndicators = this.extractGrowthIndicators(response[0]);
+      if (!memories[0]) {
+        return {
+          message: "I couldn't find any relevant information.",
+          context: {
+            relatedEntries: [],
+            growthIndicators: [],
+            suggestedActions: [
+              "Start a new journal entry",
+              "Review past entries",
+            ],
+          },
+        };
+      }
+
+      const relevantContent = this.extractMessageContent(memories[0]?.message);
+      const growthIndicators = this.extractGrowthIndicators(memories[0]);
 
       return {
         message: relevantContent || "I couldn't find any relevant information.",
         context: {
-          relatedEntries: response
+          relatedEntries: memories
             .slice(1)
-            .map((r) => r.message?.content)
+            .map((r) => this.extractMessageContent(r.message))
             .filter((content): content is string => content !== undefined),
           growthIndicators: growthIndicators.map(
             (indicator) =>
@@ -134,7 +190,7 @@ export class AIService {
                 indicator.confidence * 100
               )}%): ${indicator.evidence}`
           ),
-          suggestedActions: this.generateSuggestedActions(response[0]),
+          suggestedActions: this.generateSuggestedActions(memories[0]),
         },
       };
     } catch (error) {
@@ -146,9 +202,16 @@ export class AIService {
     }
   }
 
-  private extractSentiment(memory: any): SentimentAnalysis {
-    // Extract sentiment from memory response
-    const score = memory?.dist || 0;
+  private extractMessageContent(
+    message: string | Message | undefined
+  ): string | undefined {
+    if (!message) return undefined;
+    if (typeof message === "string") return message;
+    return message.content;
+  }
+
+  private extractSentiment(memory: SearchResult): SentimentAnalysis {
+    const score = memory?.score ?? 0;
     let label: SentimentAnalysis["label"] = "neutral";
 
     if (score > 0.3) label = "positive";
@@ -161,7 +224,7 @@ export class AIService {
     };
   }
 
-  private extractGrowthIndicators(memory: any): GrowthIndicator[] {
+  private extractGrowthIndicators(memory: SearchResult): GrowthIndicator[] {
     const indicators: GrowthIndicator[] = [];
     const types: GrowthIndicator["type"][] = [
       "resilience",
@@ -171,14 +234,13 @@ export class AIService {
       "learning",
     ];
 
-    // Extract growth indicators from memory response
     types.forEach((type) => {
       const confidence = Math.random(); // Replace with actual logic
       if (confidence > 0.5) {
         indicators.push({
           type,
           confidence,
-          evidence: memory.message?.content || "",
+          evidence: this.extractMessageContent(memory.message) || "",
         });
       }
     });
@@ -186,9 +248,8 @@ export class AIService {
     return indicators;
   }
 
-  private generateSuggestedActions(memory: any): string[] {
-    // Extract action items from the memory content
-    const content = memory?.message?.content;
+  private generateSuggestedActions(memory: SearchResult): string[] {
+    const content = this.extractMessageContent(memory?.message);
     if (!content) return [];
 
     const actions = content

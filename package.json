@@ -9,12 +9,17 @@
     "db:migrate": "bun run src/db/migrate.ts",
     "db:push": "bunx drizzle-kit push:pg",
     "db:studio": "bunx drizzle-kit studio",
-    "migrate": "bun run scripts/migrate.ts"
+    "migrate": "bun run scripts/migrate.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist",
+    "deploy": "wrangler deploy",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.1",
     "@elysiajs/jwt": "^1.1.1",
     "@elysiajs/swagger": "^1.1.5",
+    "@getzep/zep-cloud": "^2.1.1",
     "@neondatabase/serverless": "^0.10.3",
     "drizzle-kit": "^0.28.1",
     "drizzle-orm": "^0.36.2",
@@ -25,7 +30,12 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
     "bun-types": "latest",
-    "typescript": "^5.0.0"
+    "eslint": "^9.15.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.87.0"
   }
 }
