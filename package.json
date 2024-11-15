@@ -1,0 +1,31 @@
+{
+  "name": "journal-up",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "db:generate": "bunx drizzle-kit generate:pg",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "db:push": "bunx drizzle-kit push:pg",
+    "db:studio": "bunx drizzle-kit studio",
+    "migrate": "bun run scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.1.1",
+    "@elysiajs/jwt": "^1.1.1",
+    "@elysiajs/swagger": "^1.1.5",
+    "@neondatabase/serverless": "^0.10.3",
+    "drizzle-kit": "^0.28.1",
+    "drizzle-orm": "^0.36.2",
+    "elysia": "^1.1.25",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1",
+    "zep-js": "^0.2.6",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,46 @@
+meta {
+  name: Analyze Content
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/ai/analyze
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+    "content": "Today I faced a challenging problem at work. Instead of getting frustrated, I persisted and broke it down into smaller pieces. Through effort and learning from my mistakes, I was able to overcome this obstacle. The feedback from my team also helped me see different perspectives."
+  }
+}
+
+tests {
+  test("should analyze content and return sentiment and growth indicators") {
+    const response = res;
+    expect(response.status).to.equal(200);
+    expect(response.body).to.have.property("sentiment");
+    expect(response.body.sentiment).to.have.property("score");
+    expect(response.body.sentiment).to.have.property("label");
+    expect(response.body).to.have.property("growthIndicators");
+    expect(response.body.growthIndicators).to.be.an("array");
+  }
+
+  test("should identify multiple growth mindset indicators") {
+    const response = res;
+    const indicators = response.body.growthIndicators;
+    const types = indicators.map(i => i.type);
+    
+    // The sample text contains multiple growth mindset elements
+    expect(types).to.include("resilience");
+    expect(types).to.include("effort");
+    expect(types).to.include("challenge");
+    expect(types).to.include("feedback");
+  }
+}

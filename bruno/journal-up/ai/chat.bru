@@ -1,0 +1,32 @@
+meta {
+  name: AI Chat
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/ai/chat
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+    "message": "I've been struggling with a difficult coding problem. Any advice based on my past experiences?"
+  }
+}
+
+tests {
+  test("should return chat response with context") {
+    const response = res;
+    expect(response.status).to.equal(200);
+    expect(response.body).to.have.property("message");
+    expect(response.body).to.have.property("context");
+    expect(response.body.context).to.have.property("suggestedActions");
+  }
+}

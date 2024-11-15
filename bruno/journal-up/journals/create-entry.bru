@@ -1,0 +1,33 @@
+meta {
+  name: Create Journal Entry
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/journals/{{journalId}}/entries
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+    "content": "Today I faced a challenging problem at work. Instead of getting frustrated, I broke it down into smaller pieces and solved each one step by step. This approach not only helped me solve the problem but also taught me the value of patience and systematic problem-solving."
+  }
+}
+
+tests {
+  test("should create a new journal entry with sentiment analysis") {
+    const response = res;
+    expect(response.status).to.equal(201);
+    expect(response.body).to.have.property("id");
+    expect(response.body).to.have.property("content");
+    expect(response.body).to.have.property("sentiment_score");
+    expect(response.body).to.have.property("growth_indicators");
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Test
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/test/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "newuser@example.com",
+    "password": "securePassword123",
+    "confirmPassword": "securePassword123"
+  }
+}
