@@ -10,7 +10,7 @@ const migrations: Record<string, Migration> = {
   '001_initial_schema': initialSchema,
 };
 
-async function runMigrations() {
+export async function runMigrations() {
   console.log('Starting migrations...');
 
   try {
@@ -33,11 +33,15 @@ async function runMigrations() {
     }
 
     console.log('✨ All migrations completed successfully');
-    process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-runMigrations();
+// Only run migrations directly if this file is being executed directly
+if (require.main === module) {
+  runMigrations()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}

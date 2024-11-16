@@ -1,0 +1,22 @@
+meta {
+  name: Login Prod
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+  "email": "newuser7@example.com",
+  "password": "securePassword123"
+  }
+}
