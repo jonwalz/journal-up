@@ -9,6 +9,7 @@ import type {
   GrowthArea,
 } from "../types/metrics";
 import { ValidationError } from "../utils/errors";
+import { AppError } from "../utils/errors"; // Added import statement
 
 export class MetricsService {
   private metricsRepository: MetricsRepository;
@@ -45,7 +46,9 @@ export class MetricsService {
     );
   }
 
-  async analyzeProgress(userId: string): Promise<ProgressAnalysis> {
+  async analyzeProgress(
+    userId: string
+  ): Promise<ProgressAnalysis> {
     // Get current period metrics (last 30 days)
     const timeRange: DateRange = {
       end: new Date(),
@@ -145,8 +148,7 @@ export class MetricsService {
     for (const [type, trend] of Object.entries(trends)) {
       const strength = this.calculateStrength(trend);
       const suggestions = await this.generateGrowthSuggestions(
-        type as MetricType,
-        trend
+        type as MetricType
       );
 
       growthAreas.push({
@@ -199,10 +201,7 @@ export class MetricsService {
     return Math.max(0, Math.min(1, averageGrowth));
   }
 
-  private async generateGrowthSuggestions(
-    type: MetricType,
-    trend: MetricTrend
-  ): Promise<string[]> {
+  private async generateGrowthSuggestions(type: MetricType): Promise<string[]> {
     const suggestions: Record<MetricType, string[]> = {
       resilience: [
         "Practice mindfulness meditation to build emotional resilience",
@@ -261,11 +260,8 @@ export class MetricsService {
 
       return { insights, recommendations };
     } catch (error) {
-      // Fallback to static insights if AI generation fails
-      return {
-        insights: this.generateStaticInsights(trends),
-        recommendations: this.generateStaticRecommendations(growthAreas),
-      };
+      console.error("Failed to analyze metrics:", error);
+      throw new AppError(500, "METRICS_ERROR", "Failed to analyze metrics");
     }
   }
 
@@ -311,5 +307,9 @@ RECOMMENDATIONS:
 
   private generateStaticRecommendations(growthAreas: GrowthArea[]): string[] {
     return growthAreas.flatMap((area) => area.suggestions.slice(0, 2));
+  }
+
+  private calculateTrend(metrics: Metric[]): string {
+    return metrics.length > 0 ? "improving" : "stable";
   }
 }

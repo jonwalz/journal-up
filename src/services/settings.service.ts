@@ -15,6 +15,7 @@ export class SettingsService {
       const settings = await this.settingsRepository.getSettings(userId);
       return this.mapToIUserSettings(settings);
     } catch (error) {
+      console.error('Failed to get settings:', error);
       throw new AppError(
         500,
         "SETTINGS_SERVICE_ERROR",
@@ -36,6 +37,7 @@ export class SettingsService {
       );
       return this.mapToIUserSettings(updatedSettings);
     } catch (error) {
+      console.error('Failed to update settings:', error);
       if (error instanceof AppError) throw error;
       throw new AppError(
         500,

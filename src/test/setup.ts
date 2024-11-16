@@ -31,7 +31,7 @@ export function createTestApp(options: TestAppOptions = {}) {
   const app = new Elysia()
     .onError(({ error, set }) => {
       // Handle Elysia validation errors
-      if (error.type === "validation") {
+      if ("type" in error && error.type === "validation") {
         set.status = 400;
         return {
           error: {
@@ -56,7 +56,7 @@ export async function request(
   app: Elysia,
   method: string,
   path: string,
-  body?: any,
+  body?: Record<string, unknown>,
   token?: string
 ) {
   const headers: Record<string, string> = {
@@ -87,9 +87,9 @@ export async function request(
       status: response.status,
       body: responseBody,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle Elysia validation errors
-    if (error.type === "validation") {
+    if (error && typeof error === 'object' && 'type' in error && error.type === 'validation') {
       return {
         status: 400,
         body: {

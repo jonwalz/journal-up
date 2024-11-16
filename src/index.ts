@@ -4,7 +4,6 @@ import { journalController } from "./controllers/journal.controller";
 import { metricsController } from "./controllers/metrics.controller";
 import { aiController } from "./controllers/ai.controller";
 import { settingsController } from "./controllers/settings.controller";
-import { testController } from "./controllers/test.controller.ts";
 
 app
   // .use(testController)

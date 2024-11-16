@@ -4,6 +4,14 @@ import type { IJournal, IEntry, IGrowthIndicators } from "../types";
 import { ZepClient } from "zep-js";
 import { env } from "../config/environment";
 
+interface ZepMemory {
+  message?: {
+    content: string;
+    metadata?: Record<string, unknown>;
+  };
+  score?: number;
+}
+
 export class JournalService {
   private journalRepository: JournalRepository;
   private zepClient: ZepClient;
@@ -56,7 +64,7 @@ export class JournalService {
   private async analyzeEntry(entryId: string, content: string): Promise<void> {
     try {
       // Analyze sentiment and growth indicators using Zep
-      const memory = await this.zepClient.searchMemory("journal_entries", {
+      const _memory = await this.zepClient.searchMemory("journal_entries", {
         text: content,
         meta: {
           type: "analysis",
@@ -65,8 +73,8 @@ export class JournalService {
       });
 
       // Extract sentiment and growth indicators using the memory results
-      const sentimentScore = this.extractSentiment(memory);
-      const growthIndicators = this.extractGrowthIndicators(memory);
+      const sentimentScore = this.extractSentiment(_memory);
+      const growthIndicators = this.extractGrowthIndicators(_memory);
 
       // Update the entry with analysis results
       await this.journalRepository.updateEntry(entryId, {
@@ -79,13 +87,13 @@ export class JournalService {
     }
   }
 
-  private extractSentiment(memory: any): number {
+  private extractSentiment(_memory: ZepMemory): number {
     // Implement sentiment extraction logic
     // This is a placeholder implementation
     return Math.random() * 2 - 1; // Returns a value between -1 and 1
   }
 
-  private extractGrowthIndicators(memory: any): IGrowthIndicators {
+  private extractGrowthIndicators(_memory: ZepMemory): IGrowthIndicators {
     // Implement growth indicators extraction logic
     // This is a placeholder implementation
     return {

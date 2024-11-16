@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import { MetricsService } from "../services/metrics.service";
 import { authMiddleware } from "../middleware/auth";
 import { ValidationError } from "../utils/errors";
-import type { MetricType, DateRange } from "../types/metrics";
+import type { DateRange } from "../types/metrics";
 
 export const metricsController = new Elysia({ prefix: "/metrics" })
   .use(authMiddleware)

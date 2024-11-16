@@ -13,7 +13,7 @@ const envSchema = z.object({
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
-function validateEnv(env: any): EnvConfig {
+function validateEnv(env: Record<string, unknown>): EnvConfig {
   const parsed = envSchema.safeParse(env);
 
   if (!parsed.success) {
@@ -24,6 +24,6 @@ function validateEnv(env: any): EnvConfig {
   return parsed.data;
 }
 
-export const env = (globalThis as any).process?.env
-  ? validateEnv((globalThis as any).process.env) // For local development
-  : validateEnv(globalThis); // For Cloudflare Workers
+export const env = (globalThis as typeof globalThis & { process?: { env: Record<string, string> } }).process?.env
+  ? validateEnv((globalThis as typeof globalThis & { process?: { env: Record<string, string> } }).process.env) // For local development
+  : validateEnv(globalThis as unknown as Record<string, unknown>); // For Cloudflare Workers

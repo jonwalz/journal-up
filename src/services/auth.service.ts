@@ -30,6 +30,7 @@ export class AuthService {
       const token = await this.generateToken(user);
       return { token };
     } catch (error) {
+      console.error('Failed to validate token:', error);
       throw new AuthenticationError("Invalid credentials");
     }
   }

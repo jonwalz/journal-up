@@ -1,89 +1,89 @@
+/// <reference types="bun-types" />
+
+declare global {
+  var neon: () => { sql: ReturnType<typeof mock> };
+  var AuthService: typeof MockAuthServiceClass;
+  var MetricsService: typeof MockMetricsServiceClass;
+}
+
 import { mock } from "bun:test";
 
 // Mock database
-global.neon = () => ({
+globalThis.neon = () => ({
   sql: mock(() => Promise.resolve({ rows: [] })),
 });
 
 // Mock auth service
-const mockAuthService = {
-  async signup(email: string, password: string) {
+class MockAuthServiceClass {
+  async signup(_email: string, _password: string) {
     return {
-      id: "test-user-id",
-      email,
       token: "test-token",
+      id: "test-id",
+      email: _email,
     };
-  },
+  }
 
-  async login(email: string, password: string) {
+  async login(_email: string, _password: string) {
     return {
-      id: "test-user-id",
-      email,
       token: "test-token",
+      id: "test-id",
+      email: _email,
     };
-  },
+  }
 
-  async validateToken(token: string) {
+  async validateToken(_token: string) {
     return {
-      id: "test-user-id",
+      id: "test-id",
       email: "test@example.com",
     };
-  },
-};
+  }
+}
 
 // Mock metrics service
-const mockMetricsService = {
+class MockMetricsServiceClass {
   async recordMetric(
-    userId: string,
-    type: string,
-    value: number,
-    notes?: string
+    _userId: string,
+    _type: string,
+    _value: number,
+    _notes?: string
   ) {
     return {
       id: "test-metric-id",
-      userId,
-      type,
-      value,
-      notes,
-      timestamp: new Date(),
+      userId: _userId,
+      type: _type,
+      value: _value,
+      notes: _notes,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
-  },
+  }
 
-  async getMetrics(userId: string, startDate?: Date, endDate?: Date) {
+  async getMetrics(_userId: string, _startDate?: Date, _endDate?: Date) {
     return [
       {
         id: "test-metric-id",
-        userId,
-        type: "mood",
-        value: 7,
-        timestamp: new Date(),
+        userId: _userId,
+        type: "test-type",
+        value: 1,
+        notes: "test-notes",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
-  },
+  }
 
-  async analyzeProgress(userId: string) {
+  async analyzeProgress(_userId: string) {
     return {
-      summary: {
-        mood: {
-          average: 7,
-          trend: "stable",
-        },
-      },
+      totalEntries: 1,
+      averageValue: 1,
+      trend: "up",
+      recommendations: ["test-recommendation"],
     };
-  },
-};
-
-// Mock service classes
-// @ts-ignore
-global.AuthService = class {
-  constructor() {
-    return mockAuthService;
   }
-};
+}
 
-// @ts-ignore
-global.MetricsService = class {
-  constructor() {
-    return mockMetricsService;
-  }
-};
+// Set up mock service classes
+globalThis.AuthService = MockAuthServiceClass;
+globalThis.MetricsService = MockMetricsServiceClass;
+
+export {};

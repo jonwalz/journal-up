@@ -1,4 +1,8 @@
-import { sql } from '../config/database';
+import { sql } from "../config/database";
+
+interface MigrationRow {
+  name: string;
+}
 
 export async function createMigrationsTable(): Promise<void> {
   await sql`
@@ -14,10 +18,12 @@ export async function getMigratedFiles(): Promise<string[]> {
   const result = await sql`
     SELECT name FROM migrations ORDER BY id;
   `;
-  return result.map((row: any) => row.name);
+  return result.map((row) => (row as MigrationRow).name);
 }
 
-export async function markMigrationAsComplete(migrationName: string): Promise<void> {
+export async function markMigrationAsComplete(
+  migrationName: string
+): Promise<void> {
   await sql`
     INSERT INTO migrations (name)
     VALUES (${migrationName});

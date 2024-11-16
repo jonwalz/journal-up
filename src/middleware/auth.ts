@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { jwt } from "@elysiajs/jwt";
 import { env } from "../config/environment";
 import { AuthenticationError } from "../utils/errors";

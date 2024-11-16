@@ -12,13 +12,13 @@ import { AppError } from "../utils/errors";
 interface Message {
   content: string;
   role?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface SearchResult {
   message?: Message | string;
   score?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class AIService {
@@ -41,6 +41,7 @@ export class AIService {
         },
       });
     } catch (error) {
+      console.error('Failed to initialize user memory:', error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",
@@ -68,6 +69,7 @@ export class AIService {
         score: memories[0]?.score || 0,
       };
     } catch (error) {
+      console.error('Failed to search memory:', error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
     }
   }
@@ -104,6 +106,7 @@ export class AIService {
         growthIndicators,
       };
     } catch (error) {
+      console.error('Failed to analyze entry:', error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to analyze entry");
     }
   }
@@ -139,6 +142,7 @@ export class AIService {
         growthIndicators,
       };
     } catch (error) {
+      console.error('Failed to analyze entry content:', error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",
@@ -194,6 +198,7 @@ export class AIService {
         },
       };
     } catch (error) {
+      console.error('Failed to process chat message:', error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",

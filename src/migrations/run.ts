@@ -1,5 +1,9 @@
-import { createMigrationsTable, getMigratedFiles, markMigrationAsComplete } from './utils';
-import * as initialSchema from './001_initial_schema';
+import {
+  createMigrationsTable,
+  getMigratedFiles,
+  markMigrationAsComplete,
+} from "./utils";
+import * as initialSchema from "./001_initial_schema";
 
 interface Migration {
   up: () => Promise<void>;
@@ -7,20 +11,20 @@ interface Migration {
 }
 
 const migrations: Record<string, Migration> = {
-  '001_initial_schema': initialSchema,
+  "001_initial_schema": initialSchema,
 };
 
 export async function runMigrations() {
-  console.log('Starting migrations...');
+  console.log("Starting migrations...");
 
   try {
     // Ensure migrations table exists
     await createMigrationsTable();
-    console.log('✅ Migrations table ready');
+    console.log("✅ Migrations table ready");
 
     // Get list of completed migrations
     const completedMigrations = await getMigratedFiles();
-    console.log('Completed migrations:', completedMigrations);
+    console.log("Completed migrations:", completedMigrations);
 
     // Run pending migrations
     for (const [name, migration] of Object.entries(migrations)) {
@@ -32,15 +36,15 @@ export async function runMigrations() {
       }
     }
 
-    console.log('✨ All migrations completed successfully');
+    console.log("✨ All migrations completed successfully");
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error("❌ Migration failed:", error);
     throw error;
   }
 }
 
 // Only run migrations directly if this file is being executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runMigrations()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));

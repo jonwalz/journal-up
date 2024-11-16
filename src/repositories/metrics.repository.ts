@@ -73,6 +73,7 @@ export class MetricsRepository {
         };
       });
     } catch (error) {
+      console.error("Failed to get metrics:", error);
       throw new AppError(500, "METRICS_FETCH_ERROR", "Failed to get metrics");
     }
   }
@@ -106,6 +107,7 @@ export class MetricsRepository {
         notes: metric.notes || undefined,
       }));
     } catch (error) {
+      console.error("Failed to get metrics by type:", error);
       throw new AppError(500, "METRICS_FETCH_ERROR", "Failed to get metrics");
     }
   }
@@ -114,6 +116,7 @@ export class MetricsRepository {
     try {
       await db.delete(metrics).where(eq(metrics.id, id));
     } catch (error) {
+      console.error("Failed to delete metric:", error);
       throw new AppError(500, "METRIC_DELETE_ERROR", "Failed to delete metric");
     }
   }

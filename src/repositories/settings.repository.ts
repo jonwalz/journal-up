@@ -52,6 +52,7 @@ export class SettingsRepository {
 
       return settings;
     } catch (error) {
+      console.error('Failed to get user settings:', error);
       throw new AppError(
         500,
         "SETTINGS_FETCH_ERROR",
@@ -83,6 +84,7 @@ export class SettingsRepository {
 
       return result;
     } catch (error) {
+      console.error('Failed to update user settings:', error);
       throw new AppError(
         500,
         "SETTINGS_UPDATE_ERROR",
@@ -102,6 +104,7 @@ export class SettingsRepository {
 
       return settings;
     } catch (error) {
+      console.error('Failed to create default settings:', error);
       throw new AppError(
         500,
         "SETTINGS_CREATE_ERROR",

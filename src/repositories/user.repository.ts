@@ -13,8 +13,8 @@ export class UserRepository {
         .returning();
 
       return user;
-    } catch (error: any) {
-      if (error.code === "23505") {
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === "23505") {
         // unique violation
         throw new ConflictError("Email already exists");
       }
