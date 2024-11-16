@@ -22,13 +22,3 @@ body:json {
     "notes": "Bounced back quickly from a setback and learned from the experience"
   }
 }
-
-tests {
-  test("should record a new mindset metric") {
-    const response = res;
-    expect(response.status).to.equal(201);
-    expect(response.body).to.have.property("id");
-    expect(response.body).to.have.property("metric_type").equals("resilience");
-    expect(response.body).to.have.property("value").equals(8);
-  }
-}

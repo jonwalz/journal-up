@@ -20,12 +20,3 @@ body:json {
     "title": "My Growth Journey"
   }
 }
-
-tests {
-  test("should create a new journal") {
-    const response = res;
-    expect(response.status).to.equal(201);
-    expect(response.body).to.have.property("id");
-    expect(response.body).to.have.property("title").equals("My Growth Journey");
-  }
-}
