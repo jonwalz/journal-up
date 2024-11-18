@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/auth/login
+  url: http://localhost:4324/auth/login
   body: json
   auth: none
 }
@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-  "email": "test@example.com",
+  "email": "newuser3@example.com",
   "password": "securePassword123"
   }
 }

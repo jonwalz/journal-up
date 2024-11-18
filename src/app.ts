@@ -1,8 +1,7 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { cors } from "@elysiajs/cors";
-import { jwt } from "@elysiajs/jwt";
-import { env } from "./config/environment";
+import { jwt } from "./plugins/jwt";
 
 export const app = new Elysia({ aot: false })
   .use(
@@ -19,7 +18,7 @@ export const app = new Elysia({ aot: false })
   .use(
     jwt({
       name: "jwt",
-      secret: env.JWT_SECRET,
+      secret: "JWT_SECRET",
       exp: "7d",
     })
   );
