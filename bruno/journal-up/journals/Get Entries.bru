@@ -1,0 +1,15 @@
+meta {
+  name: Get Entries
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/journals
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiJ9.eyJpZCI6IjQyY2ZhMGJhLTlhYTEtNGFiYy05YjUwLWM2NzRmN2Q4Yjg1OSIsImVtYWlsIjoibmV3dXNlcjNAZXhhbXBsZS5jb20iLCJleHAiOjE3MzI1NjUxNTh9.k09p9OSVMmevGICvaTxUq47ylLsbN-jGuGgRsUcWPl4
+}
