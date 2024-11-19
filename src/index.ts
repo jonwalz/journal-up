@@ -4,23 +4,10 @@ import { journalController } from "./controllers/journal.controller";
 import { metricsController } from "./controllers/metrics.controller";
 import { aiController } from "./controllers/ai.controller";
 import { settingsController } from "./controllers/settings.controller";
-import type { D1Database } from "@cloudflare/workers-types/experimental";
-import type { Context } from "elysia";
-
-export interface Env {
-  DB: D1Database;
-  MY_SECRET: string;
-}
-
-export interface CF extends Context {
-  env: Env;
-  body: {
-    email: string;
-    password: string;
-  };
-}
+import { indexController } from "./controllers/index.controller";
 
 app
+  .use(indexController)
   .use(authController)
   .use(journalController)
   .use(metricsController)
