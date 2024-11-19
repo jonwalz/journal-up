@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
+import { cookie } from "@elysiajs/cookie";
 
 export const app = new Elysia({ aot: false })
   .use(
@@ -15,6 +16,7 @@ export const app = new Elysia({ aot: false })
     })
   )
   .use(cors())
+  .use(cookie())
   .use(
     jwt({
       name: "jwt",

@@ -6,12 +6,33 @@ export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/signup",
     async (ctx) => {
-      console.log("Creating user...");
       const authService = new AuthService();
 
-      return await authService.signup(ctx.body.email, ctx.body.password);
+      const { token } = await authService.signup(
+        ctx.body.email,
+        ctx.body.password
+      );
+
+      if (!token) {
+        return ctx.error(400, {
+          message: "Failed to create user",
+        });
+      }
+
+      ctx.cookie.token.value = token;
+      return {
+        message: "User created successfully",
+      };
     },
     {
+      response: {
+        200: t.Object({
+          message: t.String(),
+        }),
+        400: t.Object({
+          message: t.String(),
+        }),
+      },
       body: t.Object({
         email: t.String({ format: "email" }),
         password: t.String({ minLength: 8 }),
@@ -26,11 +47,28 @@ export const authController = new Elysia({ prefix: "/auth" })
   )
   .post(
     "/login",
-    async ({ body }) => {
+    async ({ body, error, cookie }) => {
       const authService = new AuthService();
-      return await authService.login(body.email, body.password);
+      const { token } = await authService.login(body.email, body.password);
+
+      if (!token) {
+        return error(400, {
+          message: "Failed to create user",
+        });
+      }
+
+      cookie.token.value = token;
+      return {
+        message: "Successfully",
+      };
     },
     {
+      200: t.Object({
+        message: t.String(),
+      }),
+      400: t.Object({
+        message: t.String(),
+      }),
       body: t.Object({
         email: t.String({ format: "email" }),
         password: t.String(),

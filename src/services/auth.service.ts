@@ -2,6 +2,7 @@ import * as jose from "jose";
 import { UserRepository } from "../repositories/user.repository";
 import { AuthenticationError } from "../utils/errors";
 import { env } from "../config/environment";
+import type { CookieOptions } from "elysia";
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -28,9 +29,10 @@ export class AuthService {
       }
 
       const token = await this.generateToken(user);
+
       return { token };
     } catch (error) {
-      console.error('Failed to validate token:', error);
+      console.error("Failed to validate token:", error);
       throw new AuthenticationError("Invalid credentials");
     }
   }
