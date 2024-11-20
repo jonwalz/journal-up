@@ -1,43 +1,48 @@
 import { Elysia } from "elysia";
-import { jwt } from "@elysiajs/jwt";
+import * as jose from "jose";
 import { env } from "../config/environment";
 import { AuthenticationError } from "../utils/errors";
+import { AuthService } from "../services/auth.service";
+
+const authService = new AuthService();
 
 type AuthUser = {
   id: string;
   email: string;
 };
 
-export const authMiddleware = new Elysia()
-  .use(
-    jwt({
-      name: "jwt",
-      secret: env.JWT_SECRET,
-      exp: "7d",
-    })
-  )
-  .derive(
-    {
-      as: "global",
-    },
-    async ({ jwt, headers }): Promise<{ user: AuthUser }> => {
-      const authorization = headers.authorization;
-      if (!authorization) {
-        throw new AuthenticationError("No authorization header");
-      }
+export const authMiddleware = new Elysia().derive(
+  {
+    as: "global",
+  },
+  async ({ headers }): Promise<{ user: AuthUser }> => {
+    const authHeader = headers.authorization;
+    const sessionToken = headers["x-session-token"];
 
-      const token = authorization.split(" ")[1];
-      if (!token) {
-        throw new AuthenticationError("Invalid authorization format");
-      }
+    if (!authHeader || !sessionToken) {
+      throw new AuthenticationError("Missing authentication");
+    }
 
-      const payload = await jwt.verify(token);
-      if (!payload) {
-        throw new AuthenticationError("Invalid token");
-      }
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      throw new AuthenticationError("Invalid token format");
+    }
 
+    // Validate session first
+    const isValidSession = await authService.validateSession(sessionToken);
+    if (!isValidSession) {
+      throw new AuthenticationError("Invalid or expired session");
+    }
+
+    try {
+      const secret = new TextEncoder().encode(env.JWT_SECRET);
+      const { payload } = await jose.jwtVerify(token, secret);
       return {
         user: payload as AuthUser,
       };
+    } catch (error) {
+      console.error("Failed to validate token:", error);
+      throw new AuthenticationError("Invalid token");
     }
-  );
+  }
+);

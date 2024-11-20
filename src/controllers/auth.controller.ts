@@ -2,32 +2,28 @@ import { Elysia, t } from "elysia";
 import { AuthService } from "../services/auth.service";
 import { ValidationError } from "../utils/errors";
 
+const authService = new AuthService();
+
 export const authController = new Elysia({ prefix: "/auth" })
   .post(
     "/signup",
-    async (ctx) => {
-      const authService = new AuthService();
+    async ({ body, cookie, error }) => {
+      const { email, password } = body;
+      const { token, sessionToken } = await authService.signup(email, password);
 
-      const { token } = await authService.signup(
-        ctx.body.email,
-        ctx.body.password
-      );
-
-      if (!token) {
-        return ctx.error(400, {
+      if (!token || !sessionToken) {
+        return error(400, {
           message: "Failed to create user",
         });
       }
 
-      ctx.cookie.token.value = token;
-      return {
-        message: "User created successfully",
-      };
+      cookie.token.value = token;
+      return { success: true };
     },
     {
       response: {
         200: t.Object({
-          message: t.String(),
+          success: t.Boolean(),
         }),
         400: t.Object({
           message: t.String(),
@@ -47,28 +43,28 @@ export const authController = new Elysia({ prefix: "/auth" })
   )
   .post(
     "/login",
-    async ({ body, error, cookie }) => {
-      const authService = new AuthService();
-      const { token } = await authService.login(body.email, body.password);
+    async ({ body, cookie, error }) => {
+      const { email, password } = body;
+      const { token, sessionToken } = await authService.login(email, password);
 
-      if (!token) {
+      if (!token || !sessionToken) {
         return error(400, {
           message: "Failed to create user",
         });
       }
 
       cookie.token.value = token;
-      return {
-        message: "Successfully",
-      };
+      return { success: true };
     },
     {
-      200: t.Object({
-        message: t.String(),
-      }),
-      400: t.Object({
-        message: t.String(),
-      }),
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+        }),
+        400: t.Object({
+          message: t.String(),
+        }),
+      },
       body: t.Object({
         email: t.String({ format: "email" }),
         password: t.String(),
@@ -78,6 +74,24 @@ export const authController = new Elysia({ prefix: "/auth" })
           throw new ValidationError(error.message);
         }
         throw error;
+      },
+    }
+  )
+  .post(
+    "/logout",
+    async ({ headers, cookie }) => {
+      const sessionToken = headers["x-session-token"];
+      if (sessionToken) {
+        await authService.logout(sessionToken);
+      }
+      cookie.token.value = "";
+      return { success: true };
+    },
+    {
+      response: {
+        200: t.Object({
+          success: t.Boolean(),
+        }),
       },
     }
   );
