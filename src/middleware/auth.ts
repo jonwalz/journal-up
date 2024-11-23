@@ -15,7 +15,10 @@ export const authMiddleware = new Elysia().derive(
   {
     as: "global",
   },
-  async ({ headers }): Promise<{ user: AuthUser }> => {
+  async ({ headers, path }): Promise<{ user: AuthUser }> => {
+    if (path === "/swagger" || path === "/swagger/json") {
+      return { user: { id: "swagger", email: "swagger" } };
+    }
     const authHeader = headers.authorization;
     const sessionToken = headers["x-session-token"];
 
