@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { jwt } from "@elysiajs/jwt";
 import { beforeAll } from "bun:test";
 import { setupTestDatabase } from "./db-setup";
+import { validation } from "../plugins/validation";
 
 export const TEST_USER_ID = "test-user-id";
 export const TEST_USER_EMAIL = "test@example.com";
@@ -28,21 +29,7 @@ interface TestAppOptions {
 }
 
 export function createTestApp(options: TestAppOptions = {}) {
-  const app = new Elysia()
-    .onError(({ error, set }) => {
-      // Handle Elysia validation errors
-      if ("type" in error && error.type === "validation") {
-        set.status = 400;
-        return {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Validation Failed",
-          },
-        };
-      }
-      throw error;
-    })
-    .use(jwtPlugin);
+  const app = new Elysia().use(validation).use(jwtPlugin);
 
   if (options.auth) {
     app.use(authMiddleware);
@@ -53,7 +40,7 @@ export function createTestApp(options: TestAppOptions = {}) {
 
 // Test request helper
 export async function request(
-  app: Elysia,
+  app: ReturnType<typeof createTestApp>,
   method: string,
   path: string,
   body?: Record<string, unknown>,
@@ -88,18 +75,46 @@ export async function request(
       body: responseBody,
     };
   } catch (error: unknown) {
-    // Handle Elysia validation errors
-    if (error && typeof error === 'object' && 'type' in error && error.type === 'validation') {
+    // Handle validation errors
+    if (
+      error &&
+      typeof error === "object" &&
+      "type" in error &&
+      error.type === "validation"
+    ) {
       return {
-        status: 400,
+        status: 422,
         body: {
           error: {
             code: "VALIDATION_ERROR",
-            message: "Validation Failed",
+            message: "Validation failed",
+            details: error,
           },
         },
       };
     }
+
+    // Handle application errors
+    if (
+      error &&
+      typeof error === "object" &&
+      "statusCode" in error &&
+      "code" in error &&
+      "message" in error
+    ) {
+      return {
+        status: error.statusCode,
+        body: {
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        },
+      };
+    }
+
+    // Handle unknown errors
+    console.error("Unknown error:", error);
     throw error;
   }
 }

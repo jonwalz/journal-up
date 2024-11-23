@@ -1,8 +1,7 @@
-import * as jose from "jose";
 import { UserRepository } from "../repositories/user.repository";
 import { SessionRepository } from "../repositories/session.repository";
-import { AuthenticationError } from "../utils/errors";
-import { env } from "../config/environment";
+import { AuthenticationError, NotFoundError } from "../utils/errors";
+import { generateToken } from "../utils/jwt";
 
 export interface AuthResponse {
   token: string;
@@ -45,6 +44,12 @@ export class AuthService {
 
       return { token, sessionToken: session.token };
     } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error; // Let NotFoundError propagate
+      }
+      if (error instanceof AuthenticationError) {
+        throw new AuthenticationError("Invalid credentials", 401);
+      }
       console.error("Failed to validate token:", error);
       throw new AuthenticationError("Invalid credentials");
     }
@@ -67,10 +72,6 @@ export class AuthService {
     id: string;
     email: string;
   }): Promise<string> {
-    const secret = new TextEncoder().encode(env.JWT_SECRET);
-    return await new jose.SignJWT({ id: user.id, email: user.email })
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("7d")
-      .sign(secret);
+    return generateToken({ sub: user.id });
   }
 }

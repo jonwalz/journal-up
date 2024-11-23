@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { NotFoundError } from "../utils/errors";
 import type { IUser } from "../types";
-import { NotFoundError, ConflictError } from "../utils/errors";
 
 export class UserRepository {
   async create(email: string, passwordHash: string): Promise<IUser> {
@@ -13,38 +13,37 @@ export class UserRepository {
         .returning();
 
       return user;
-    } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === "23505") {
-        // unique violation
-        throw new ConflictError("Email already exists");
+    } catch (error) {
+      // Handle unique constraint violation
+      if (
+        error instanceof Error &&
+        error.message.includes("UNIQUE constraint failed")
+      ) {
+        throw new NotFoundError("Email already exists");
       }
       throw error;
     }
   }
 
   async findByEmail(email: string): Promise<IUser> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
 
     if (!user) {
-      throw new NotFoundError("User");
+      throw new NotFoundError("User not found");
     }
 
     return user;
   }
 
   async findById(id: string): Promise<IUser> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
 
     if (!user) {
-      throw new NotFoundError("User");
+      throw new NotFoundError("User not found");
     }
 
     return user;

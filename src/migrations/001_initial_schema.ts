@@ -14,6 +14,21 @@ export async function up(): Promise<void> {
 
   await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`;
 
+  // Create sessions table
+  await sql`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id),
+      token VARCHAR(255) UNIQUE NOT NULL,
+      expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);`;
+
   // Create journals table
   await sql`
     CREATE TABLE IF NOT EXISTS journals (
@@ -84,5 +99,6 @@ export async function down(): Promise<void> {
   await sql`DROP TABLE IF EXISTS mindset_metrics;`;
   await sql`DROP TABLE IF EXISTS entries;`;
   await sql`DROP TABLE IF EXISTS journals;`;
+  await sql`DROP TABLE IF EXISTS sessions;`;
   await sql`DROP TABLE IF EXISTS users;`;
 }

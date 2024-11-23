@@ -7,6 +7,7 @@ export async function setupTestDatabase() {
     // Order matters due to foreign key constraints
     await sql`DROP TABLE IF EXISTS "entries" CASCADE`;
     await sql`DROP TABLE IF EXISTS "journals" CASCADE`;
+    await sql`DROP TABLE IF EXISTS "sessions" CASCADE`;
     await sql`DROP TABLE IF EXISTS "users" CASCADE`;
     await sql`DROP TABLE IF EXISTS "migrations" CASCADE`;
 

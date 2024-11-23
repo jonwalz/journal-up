@@ -2,39 +2,74 @@
 
 declare global {
   var neon: () => { sql: ReturnType<typeof mock> };
-  var AuthService: typeof MockAuthServiceClass;
+  var UserRepository: typeof MockUserRepository;
+  var SessionRepository: typeof MockSessionRepository;
   var MetricsService: typeof MockMetricsServiceClass;
 }
 
 import { mock } from "bun:test";
+import { AuthenticationError } from "../utils/errors";
+import type { IUser } from "../types";
 
 // Mock database
 globalThis.neon = () => ({
   sql: mock(() => Promise.resolve({ rows: [] })),
 });
 
-// Mock auth service
-class MockAuthServiceClass {
-  async signup(_email: string, _password: string) {
+// Mock repositories
+class MockUserRepository {
+  async create(email: string, passwordHash: string): Promise<IUser> {
     return {
-      token: "test-token",
       id: "test-id",
-      email: _email,
+      email,
+      passwordHash,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
   }
 
-  async login(_email: string, _password: string) {
+  async findByEmail(email: string): Promise<IUser> {
+    if (email !== "test@example.com") {
+      throw new AuthenticationError("User not found");
+    }
     return {
-      token: "test-token",
       id: "test-id",
-      email: _email,
+      email,
+      passwordHash: await Bun.password.hash("password123"),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+}
+
+class MockSessionRepository {
+  async create(userId: string) {
+    return {
+      id: "test-session-id",
+      userId,
+      token: "test-session-token",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
   }
 
-  async validateToken(_token: string) {
+  async deleteByUserId(userId: string) {
+    // Do nothing in mock
+  }
+
+  async deleteByToken(token: string) {
+    // Do nothing in mock
+  }
+
+  async findByToken(token: string) {
     return {
-      id: "test-id",
-      email: "test@example.com",
+      id: "test-session-id",
+      userId: "test-id",
+      token,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
   }
 }
@@ -58,32 +93,22 @@ class MockMetricsServiceClass {
     };
   }
 
-  async getMetrics(_userId: string, _startDate?: Date, _endDate?: Date) {
-    return [
-      {
-        id: "test-metric-id",
-        userId: _userId,
-        type: "test-type",
-        value: 1,
-        notes: "test-notes",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
+  async getMetrics(_userId: string) {
+    return [];
   }
 
   async analyzeProgress(_userId: string) {
     return {
-      totalEntries: 1,
-      averageValue: 1,
-      trend: "up",
-      recommendations: ["test-recommendation"],
+      trends: [],
+      insights: [],
+      recommendations: [],
     };
   }
 }
 
-// Set up mock service classes
-globalThis.AuthService = MockAuthServiceClass;
+// Set up mock classes
+globalThis.UserRepository = MockUserRepository;
+globalThis.SessionRepository = MockSessionRepository;
 globalThis.MetricsService = MockMetricsServiceClass;
 
 export {};

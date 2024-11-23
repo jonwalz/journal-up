@@ -1,16 +1,14 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { env } from "../config/environment";
-
-neonConfig.fetchConnectionCache = true;
 
 const runMigrations = async () => {
   const sql = neon(env.DATABASE_URL);
   const db = drizzle(sql);
 
   console.log("⏳ Running migrations...");
-  
+
   const start = Date.now();
   await migrate(db, { migrationsFolder: "drizzle" });
   const end = Date.now();
