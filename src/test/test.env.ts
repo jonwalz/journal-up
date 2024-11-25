@@ -1,12 +1,9 @@
-const baseDbUrl = process.env.DATABASE_URL;
+const baseDbUrl = process.env.TEST_DATABASE_URL;
 if (!baseDbUrl) {
-  throw new Error("DATABASE_URL environment variable is required");
+  throw new Error("TEST_DATABASE_URL environment variable is required");
 }
 
 const dbUrl = new URL(baseDbUrl);
-const pathParts = dbUrl.pathname.split("/");
-pathParts[pathParts.length - 1] = pathParts[pathParts.length - 1] + "_test";
-dbUrl.pathname = pathParts.join("/");
 
 const testEnv: Partial<Bun.Env> = {
   NODE_ENV: "test",

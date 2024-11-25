@@ -6,6 +6,9 @@ import { generateToken } from "../utils/jwt";
 export interface AuthResponse {
   token: string;
   sessionToken: string;
+  user: {
+    id: string;
+  };
 }
 
 export class AuthService {
@@ -24,7 +27,7 @@ export class AuthService {
     const token = await this.generateToken(user);
     const session = await this.sessionRepository.create(user.id);
 
-    return { token, sessionToken: session.token };
+    return { token, sessionToken: session.token, user };
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -42,7 +45,7 @@ export class AuthService {
       const token = await this.generateToken(user);
       const session = await this.sessionRepository.create(user.id);
 
-      return { token, sessionToken: session.token };
+      return { token, sessionToken: session.token, user };
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error; // Let NotFoundError propagate

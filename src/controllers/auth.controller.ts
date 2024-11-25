@@ -42,26 +42,30 @@ export const authController = new Elysia({ prefix: "/auth" })
       },
       body: t.Object({
         email: t.String({ format: "email" }),
-        password: t.String({ minLength: 8 }),
+        password: t.String({ minLength: 5 }),
       }),
     }
   )
   .post(
     "/login",
-    async ({ body, cookie }) => {
+    async ({ body }) => {
       const { email, password } = body;
-      const { sessionToken } = await authService.login(email, password);
+      const { sessionToken, user } = await authService.login(email, password);
 
-      // Set cookies and return response
-      cookie.token.value = sessionToken;
       return {
         success: true,
+        user,
+        token: sessionToken,
       };
     },
     {
       response: {
         200: t.Object({
           success: t.Boolean(),
+          token: t.String(),
+          user: t.Object({
+            id: t.String(),
+          }),
         }),
         404: t.Object({
           error: t.Object({
