@@ -22,15 +22,17 @@ A REST API backend service for a journaling application that incorporates growth
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    bun install
    ```
 
 3. Configure environment variables:
-   - Copy `.env.example` to `.env`
-   - Update the values with your configuration
+
+   - Update the values in `.env` file
 
 4. Run database migrations:
+
    ```bash
    bun run migrate
    ```
