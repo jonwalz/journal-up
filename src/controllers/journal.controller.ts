@@ -23,10 +23,21 @@ export const journalController = new Elysia({ prefix: "/journals" })
       },
     }
   )
-  .get("/", async ({ user }) => {
-    const journalService = new JournalService();
-    return await journalService.getJournals(user.id);
-  })
+  .get(
+    "/",
+    async ({ user }) => {
+      const journalService = new JournalService();
+      return await journalService.getJournals(user.id);
+    },
+    {
+      error: ({ error }) => {
+        if (error.message === "Validation Failed") {
+          throw new ValidationError(error.message);
+        }
+        throw error;
+      },
+    }
+  )
   .post(
     "/:journalId/entries",
     async ({ params: { journalId }, body, user }) => {

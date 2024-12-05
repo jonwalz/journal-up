@@ -64,23 +64,21 @@ export class JournalService {
   private async analyzeEntry(entryId: string, content: string): Promise<void> {
     try {
       // Analyze sentiment and growth indicators using Zep
-      const _memory = await this.zepClient.searchMemory("journal_entries", {
-        text: content,
-        meta: {
-          type: "analysis",
-          entryId,
-        },
-      });
-
+      // const _memory = await this.zepClient.searchMemory("journal_entries", {
+      //   text: content,
+      //   meta: {
+      //     type: "analysis",
+      //     entryId,
+      //   },
+      // });
       // Extract sentiment and growth indicators using the memory results
-      const sentimentScore = this.extractSentiment(_memory);
-      const growthIndicators = this.extractGrowthIndicators(_memory);
-
+      // const sentimentScore = this.extractSentiment(_memory);
+      // const growthIndicators = this.extractGrowthIndicators(_memory);
       // Update the entry with analysis results
-      await this.journalRepository.updateEntry(entryId, {
-        sentimentScore,
-        growthIndicators,
-      });
+      // await this.journalRepository.updateEntry(entryId, {
+      //   sentimentScore,
+      //   growthIndicators,
+      // });
     } catch (error) {
       console.error("Error analyzing entry:", error);
       throw error;

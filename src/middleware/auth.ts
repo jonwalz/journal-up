@@ -1,51 +1,47 @@
 import { Elysia } from "elysia";
-import * as jose from "jose";
-import { env } from "../config/environment";
 import { AuthenticationError } from "../utils/errors";
 import { AuthService } from "../services/auth.service";
+import { type AuthUser, verifyToken } from "../utils/jwt";
 
 const authService = new AuthService();
 
-type AuthUser = {
-  id: string;
-  email: string;
-};
+const SWAGGER_PATHS = ["/swagger", "/swagger/json"] as const;
+const SWAGGER_USER: AuthUser = { id: "swagger", email: "swagger" };
 
 export const authMiddleware = new Elysia().derive(
   {
     as: "global",
   },
   async ({ headers, path }): Promise<{ user: AuthUser }> => {
-    if (path === "/swagger" || path === "/swagger/json") {
-      return { user: { id: "swagger", email: "swagger" } };
+    // Allow swagger access without authentication
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (SWAGGER_PATHS.includes(path as any)) {
+      return { user: SWAGGER_USER };
     }
+
     const authHeader = headers.authorization;
     const sessionToken = headers["x-session-token"];
 
     if (!authHeader || !sessionToken) {
-      throw new AuthenticationError("Missing authentication");
+      throw new AuthenticationError(
+        `Missing authentication: ${
+          !authHeader ? "authorization" : "session token"
+        }`
+      );
     }
 
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      throw new AuthenticationError("Invalid token format");
+    const [bearer, token] = authHeader.split(" ");
+    if (bearer !== "Bearer" || !token) {
+      throw new AuthenticationError("Invalid authorization header format");
     }
 
-    // Validate session first
+    // Validate session first to prevent unnecessary JWT validation
     const isValidSession = await authService.validateSession(sessionToken);
     if (!isValidSession) {
       throw new AuthenticationError("Invalid or expired session");
     }
 
-    try {
-      const secret = new TextEncoder().encode(env.JWT_SECRET);
-      const { payload } = await jose.jwtVerify(token, secret);
-      return {
-        user: payload as AuthUser,
-      };
-    } catch (error) {
-      console.error("Failed to validate token:", error);
-      throw new AuthenticationError("Invalid token");
-    }
+    const user = await verifyToken(token);
+    return { user };
   }
 );

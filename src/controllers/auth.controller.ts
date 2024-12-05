@@ -50,12 +50,16 @@ export const authController = new Elysia({ prefix: "/auth" })
     "/login",
     async ({ body }) => {
       const { email, password } = body;
-      const { sessionToken, user } = await authService.login(email, password);
+      const { sessionToken, user, token } = await authService.login(
+        email,
+        password
+      );
 
       return {
         success: true,
         user,
-        token: sessionToken,
+        sessionToken,
+        token,
       };
     },
     {
@@ -63,6 +67,7 @@ export const authController = new Elysia({ prefix: "/auth" })
         200: t.Object({
           success: t.Boolean(),
           token: t.String(),
+          sessionToken: t.String(),
           user: t.Object({
             id: t.String(),
           }),
@@ -116,5 +121,40 @@ export const authController = new Elysia({ prefix: "/auth" })
           success: t.Boolean(),
         }),
       },
+    }
+  )
+  .post(
+    "/verify-session-token",
+    async ({ headers }) => {
+      const sessionToken = headers["x-session-token"];
+      if (!sessionToken) {
+        throw new Error("No session token provided");
+      }
+      
+      const isValid = await authService.verifySessionToken(sessionToken);
+      return { valid: isValid };
+    },
+    {
+      response: t.Object({
+        valid: t.Boolean(),
+      }),
+    }
+  )
+  .post(
+    "/verify-auth-token",
+    async ({ headers }) => {
+      const authHeader = headers.authorization;
+      if (!authHeader) {
+        throw new Error("No authorization header provided");
+      }
+      
+      const token = authHeader.replace("Bearer ", "");
+      const isValid = await authService.verifyAuthToken(token);
+      return { valid: isValid };
+    },
+    {
+      response: t.Object({
+        valid: t.Boolean(),
+      }),
     }
   );

@@ -45,20 +45,14 @@ export class SessionRepository {
   }
 
   async deleteExpiredSessions(): Promise<void> {
-    await db
-      .delete(sessions)
-      .where(lt(sessions.expiresAt, new Date()));
+    await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
   }
 
   async deleteByToken(token: string): Promise<void> {
-    await db
-      .delete(sessions)
-      .where(eq(sessions.token, token));
+    await db.delete(sessions).where(eq(sessions.token, token));
   }
 
   async deleteByUserId(userId: string): Promise<void> {
-    await db
-      .delete(sessions)
-      .where(eq(sessions.userId, userId));
+    await db.delete(sessions).where(eq(sessions.userId, userId));
   }
 }

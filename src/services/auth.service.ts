@@ -1,7 +1,7 @@
 import { UserRepository } from "../repositories/user.repository";
 import { SessionRepository } from "../repositories/session.repository";
 import { AuthenticationError, NotFoundError } from "../utils/errors";
-import { generateToken } from "../utils/jwt";
+import { generateToken, verifyToken } from "../utils/jwt";
 
 export interface AuthResponse {
   token: string;
@@ -71,10 +71,25 @@ export class AuthService {
     }
   }
 
-  private async generateToken(user: {
-    id: string;
-    email: string;
-  }): Promise<string> {
-    return generateToken({ sub: user.id });
+  private async generateToken(user: { id: string; email: string }): Promise<string> {
+    return generateToken({ id: user.id, email: user.email });
+  }
+
+  async verifySessionToken(token: string): Promise<boolean> {
+    try {
+      const session = await this.sessionRepository.findByToken(token);
+      return !!session;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async verifyAuthToken(token: string): Promise<boolean> {
+    try {
+      const decoded = await verifyToken(token);
+      return !!decoded;
+    } catch (error) {
+      return false;
+    }
   }
 }
