@@ -82,3 +82,21 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const userInfo = pgTable("user_info", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull().unique(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  bio: text("bio"),
+  timezone: text("timezone").notNull().default("UTC"),
+  growthGoals: jsonb("growth_goals").$type<{
+    shortTerm: string[];
+    longTerm: string[];
+  }>().default({
+    shortTerm: [],
+    longTerm: []
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

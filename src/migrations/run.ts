@@ -4,6 +4,7 @@ import {
   markMigrationAsComplete,
 } from "./utils";
 import * as initialSchema from "./001_initial_schema";
+import * as addUserInfoTable from "./20241205155539_add_user_info_table";
 
 interface Migration {
   up: () => Promise<void>;
@@ -12,6 +13,7 @@ interface Migration {
 
 const migrations: Record<string, Migration> = {
   "001_initial_schema": initialSchema,
+  "20241205155539_add_user_info_table": addUserInfoTable,
 };
 
 export async function runMigrations() {

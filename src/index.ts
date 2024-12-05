@@ -5,6 +5,7 @@ import { metricsController } from "./controllers/metrics.controller";
 import { aiController } from "./controllers/ai.controller";
 import { settingsController } from "./controllers/settings.controller";
 import { indexController } from "./controllers/index.controller";
+import { userInfoController } from "./controllers/user-info.controller";
 
 app
   .use(indexController)
@@ -13,6 +14,7 @@ app
   .use(metricsController)
   .use(aiController)
   .use(settingsController)
+  .use(userInfoController)
   .onError(({ error, set }) => {
     console.error("Error:", error);
 

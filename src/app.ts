@@ -17,7 +17,7 @@ export const app = new Elysia({ aot: false })
   .use(cors())
   .use(cookie())
   .onRequest(({ request }) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log(`${request.method} ${request.url}`);
     }
   });
