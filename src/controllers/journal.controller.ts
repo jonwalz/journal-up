@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { JournalService } from "../services/journal.service";
 import { authMiddleware } from "../middleware/auth";
 import { ValidationError } from "../utils/errors";
+import { UserInfoService } from "../services/user-info.service";
 
 export const journalController = new Elysia({ prefix: "/journals" })
   .use(authMiddleware)
@@ -42,7 +43,19 @@ export const journalController = new Elysia({ prefix: "/journals" })
     "/:journalId/entries",
     async ({ params: { journalId }, body, user }) => {
       const journalService = new JournalService();
-      return await journalService.createEntry(user.id, journalId, body.content);
+
+      console.log("User id:", user.id);
+      const userInfoService = new UserInfoService();
+      const userInfo = await userInfoService.getUserInfo(user.id);
+
+      return await journalService.createEntry({
+        userId: user.id,
+        journalId,
+        content: body.content,
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+        email: user.email,
+      });
     },
     {
       body: t.Object({

@@ -41,7 +41,7 @@ export class AIService {
         },
       });
     } catch (error) {
-      console.error('Failed to initialize user memory:', error);
+      console.error("Failed to initialize user memory:", error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",
@@ -69,7 +69,7 @@ export class AIService {
         score: memories[0]?.score || 0,
       };
     } catch (error) {
-      console.error('Failed to search memory:', error);
+      console.error("Failed to search memory:", error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
     }
   }
@@ -106,7 +106,7 @@ export class AIService {
         growthIndicators,
       };
     } catch (error) {
-      console.error('Failed to analyze entry:', error);
+      console.error("Failed to analyze entry:", error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to analyze entry");
     }
   }
@@ -142,11 +142,33 @@ export class AIService {
         growthIndicators,
       };
     } catch (error) {
-      console.error('Failed to analyze entry content:', error);
+      console.error("Failed to analyze entry content:", error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",
         "Failed to analyze entry content"
+      );
+    }
+  }
+
+  async addToGraph(userId: string, data: any) {
+    try {
+      await this.zepClient.graph.add({
+        data,
+        userId: userId,
+        type: "json",
+      });
+
+      return {
+        success: true,
+        message: "Data successfully added to graph",
+      };
+    } catch (error) {
+      console.error("Error adding data to graph:", error);
+      throw new AppError(
+        500,
+        "AI_SERVICE_ERROR",
+        "Failed to add data to graph"
       );
     }
   }
@@ -198,7 +220,7 @@ export class AIService {
         },
       };
     } catch (error) {
-      console.error('Failed to process chat message:', error);
+      console.error("Failed to process chat message:", error);
       throw new AppError(
         500,
         "AI_SERVICE_ERROR",

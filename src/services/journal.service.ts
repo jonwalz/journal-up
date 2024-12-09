@@ -1,7 +1,7 @@
 import { JournalRepository } from "../repositories/journal.repository";
 import { AuthorizationError } from "../utils/errors";
 import type { IJournal, IEntry, IGrowthIndicators } from "../types";
-import { ZepClient } from "zep-js";
+import { ZepClient } from "@getzep/zep-cloud";
 import { env } from "../config/environment";
 
 interface ZepMemory {
@@ -18,7 +18,10 @@ export class JournalService {
 
   constructor() {
     this.journalRepository = new JournalRepository();
-    this.zepClient = new ZepClient(env.ZEP_API_URL, env.ZEP_API_KEY);
+    console.log("Zep API Key:", env.ZEP_API_KEY);
+    this.zepClient = new ZepClient({
+      apiKey: env.ZEP_API_KEY,
+    });
   }
 
   async createJournal(userId: string, title: string): Promise<IJournal> {
@@ -29,11 +32,21 @@ export class JournalService {
     return await this.journalRepository.findByUserId(userId);
   }
 
-  async createEntry(
-    userId: string,
-    journalId: string,
-    content: string
-  ): Promise<IEntry> {
+  async createEntry({
+    userId,
+    journalId,
+    content,
+    firstName,
+    lastName,
+    email,
+  }: {
+    userId: string;
+    journalId: string;
+    content: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }): Promise<IEntry> {
     // Verify journal ownership
     const journal = await this.journalRepository.findById(journalId);
     if (journal.userId !== userId) {
@@ -42,6 +55,28 @@ export class JournalService {
 
     // Create the entry
     const entry = await this.journalRepository.createEntry(journalId, content);
+
+    // Create Zep graph data for the entry
+    const graphData = {
+      id: entry.id,
+      content: entry.content,
+      metadata: {
+        type: "journal_entry",
+        journalId: journal.id,
+        userFirstName: firstName,
+        userLastName: lastName,
+        userEmail: email,
+      },
+    };
+
+    // TODO: Chunk the entry.content into smaller chunks and update the zep client to use chunked data
+
+    // Add the graph data to Zep
+    const zepResult = await this.zepClient.graph.add({
+      data: JSON.stringify(graphData),
+      userId: userId,
+      type: "json",
+    });
 
     // Analyze the entry asynchronously
     this.analyzeEntry(entry.id, content).catch((error) => {
