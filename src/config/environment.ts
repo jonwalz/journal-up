@@ -25,16 +25,4 @@ function validateEnv(env: Record<string, unknown>): EnvConfig {
   return parsed.data;
 }
 
-export const env = (
-  globalThis as typeof globalThis & {
-    process?: { env: Record<string, string> };
-  }
-).process?.env
-  ? validateEnv(
-      (
-        globalThis as typeof globalThis & {
-          process?: { env: Record<string, string> };
-        }
-      ).process.env
-    ) // For local development
-  : validateEnv(globalThis as unknown as Record<string, unknown>); // For Cloudflare Workers
+export const env = validateEnv(process.env);
