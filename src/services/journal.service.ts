@@ -4,6 +4,8 @@ import type { IJournal, IEntry, IGrowthIndicators } from "../types";
 import { ZepClient } from "@getzep/zep-cloud";
 import { env } from "../config/environment";
 
+console.log("Zep API key:", env.ZEP_API_KEY);
+
 interface ZepMemory {
   message?: {
     content: string;
