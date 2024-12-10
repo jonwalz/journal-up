@@ -9,6 +9,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   ZEP_API_URL: z.string(),
   ZEP_API_KEY: z.string(),
+  GEMINI_API_KEY: z.string(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -24,6 +25,16 @@ function validateEnv(env: Record<string, unknown>): EnvConfig {
   return parsed.data;
 }
 
-export const env = (globalThis as typeof globalThis & { process?: { env: Record<string, string> } }).process?.env
-  ? validateEnv((globalThis as typeof globalThis & { process?: { env: Record<string, string> } }).process.env) // For local development
+export const env = (
+  globalThis as typeof globalThis & {
+    process?: { env: Record<string, string> };
+  }
+).process?.env
+  ? validateEnv(
+      (
+        globalThis as typeof globalThis & {
+          process?: { env: Record<string, string> };
+        }
+      ).process.env
+    ) // For local development
   : validateEnv(globalThis as unknown as Record<string, unknown>); // For Cloudflare Workers

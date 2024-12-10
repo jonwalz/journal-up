@@ -26,6 +26,8 @@
     "@elysiajs/jwt": "^1.1.1",
     "@elysiajs/swagger": "^1.1.5",
     "@getzep/zep-cloud": "^2.1.1",
+    "@google-ai/generativelanguage": "^2.8.0",
+    "@google/generative-ai": "^0.21.0",
     "@neondatabase/serverless": "^0.10.3",
     "drizzle-kit": "^0.28.1",
     "drizzle-orm": "^0.36.2",

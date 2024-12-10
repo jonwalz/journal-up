@@ -8,6 +8,10 @@ import type {
 import { env } from "../config/environment";
 import type { IEntry } from "../types";
 import { AppError } from "../utils/errors";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SYSTEM_PROMPT } from "../prompts/system.prompt";
+
+const MODEL_NAME = "models/gemini-1.5-flash";
 
 interface Message {
   content: string;
@@ -174,49 +178,77 @@ export class AIService {
   }
 
   async chat(userId: string, message: string): Promise<AIResponse> {
+    // generate session id
+    const sessionId = Math.random().toString(36).slice(2);
+
     try {
-      const memories = await this.zepClient.memory.search(
-        this.COLLECTION_NAME,
-        {
-          text: message,
-          metadata: {
-            type: "chat",
-            userId,
-          },
-        }
-      );
+      // create zep memory session
+      await this.zepClient.memory.addSession({
+        sessionId,
+        userId,
+      });
 
-      if (!memories[0]) {
-        return {
-          message: "I couldn't find any relevant information.",
-          context: {
-            relatedEntries: [],
-            growthIndicators: [],
-            suggestedActions: [
-              "Start a new journal entry",
-              "Review past entries",
-            ],
+      await this.zepClient.memory.add(sessionId, {
+        messages: [
+          {
+            content: message,
+            roleType: "user",
+            metadata: {
+              type: "chat",
+              userId,
+            },
           },
-        };
-      }
+        ],
+      });
+      const zepSession = await this.zepClient.memory.get(sessionId);
 
-      const relevantContent = this.extractMessageContent(memories[0]?.message);
-      const growthIndicators = this.extractGrowthIndicators(memories[0]);
+      const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({
+        model: MODEL_NAME,
+        systemInstruction: `${SYSTEM_PROMPT}. Here is some context about the user: ${zepSession?.context}`,
+      });
+
+      const chat = model.startChat({
+        generationConfig: {
+          maxOutputTokens: 1000,
+        },
+      });
+
+      const result = await chat.sendMessage(message);
+      // const memories = await this.zepClient.memory.search(
+      //   this.COLLECTION_NAME,
+      //   {
+      //     text: message,
+      //     metadata: {
+      //       type: "chat",
+      //       userId,
+      //     },
+      //   }
+      // );
+
+      // if (!memories[0]) {
+      //   return {
+      //     message: "I couldn't find any relevant information.",
+      //     context: {
+      //       relatedEntries: [],
+      //       growthIndicators: [],
+      //       suggestedActions: [
+      //         "Start a new journal entry",
+      //         "Review past entries",
+      //       ],
+      //     },
+      //   };
+      // }
+
+      // const relevantContent = this.extractMessageContent(memories[0]?.message);
+      // const growthIndicators = this.extractGrowthIndicators(memories[0]);
+      console.log("Response:", result.response.text());
 
       return {
-        message: relevantContent || "I couldn't find any relevant information.",
+        message:
+          result.response.text() || "I couldn't find any relevant information.",
         context: {
-          relatedEntries: memories
-            .slice(1)
-            .map((r) => this.extractMessageContent(r.message))
-            .filter((content): content is string => content !== undefined),
-          growthIndicators: growthIndicators.map(
-            (indicator) =>
-              `${indicator.type} (${Math.round(
-                indicator.confidence * 100
-              )}%): ${indicator.evidence}`
-          ),
-          suggestedActions: this.generateSuggestedActions(memories[0]),
+          sessionId: sessionId,
         },
       };
     } catch (error) {

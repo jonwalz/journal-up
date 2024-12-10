@@ -18,7 +18,6 @@ export class JournalService {
 
   constructor() {
     this.journalRepository = new JournalRepository();
-    console.log("Zep API Key:", env.ZEP_API_KEY);
     this.zepClient = new ZepClient({
       apiKey: env.ZEP_API_KEY,
     });
