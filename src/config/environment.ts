@@ -10,6 +10,7 @@ const envSchema = z.object({
   ZEP_API_URL: z.string(),
   ZEP_API_KEY: z.string(),
   GEMINI_API_KEY: z.string(),
+  CLAUDE_API_KEY: z.string(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

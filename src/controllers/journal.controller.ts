@@ -44,9 +44,20 @@ export const journalController = new Elysia({ prefix: "/journals" })
     async ({ params: { journalId }, body, user }) => {
       const journalService = new JournalService();
 
-      console.log("User id:", user.id);
       const userInfoService = new UserInfoService();
-      const userInfo = await userInfoService.getUserInfo(user.id);
+      // TODO: Move to middleware
+      let userInfo = await userInfoService.getUserInfo(user.id).catch(() => {
+        return null;
+      });
+
+      if (!userInfo) {
+        userInfo = await userInfoService.createUserInfo({
+          userId: user.id,
+          firstName: user.email.split("@")[0], // Use email username as default name
+          lastName: "",
+          timezone: "UTC", // Default timezone
+        });
+      }
 
       return await journalService.createEntry({
         userId: user.id,

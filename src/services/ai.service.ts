@@ -8,8 +8,9 @@ import type {
 import { env } from "../config/environment";
 import type { IEntry } from "../types";
 import { AppError } from "../utils/errors";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { googleAIService } from "./google-ai.service";
 import { SYSTEM_PROMPT } from "../prompts/system.prompt";
+import { claudeAIService } from "./claude-ai.service";
 
 const MODEL_NAME = "models/gemini-1.5-flash";
 
@@ -202,54 +203,10 @@ export class AIService {
       });
       const zepSession = await this.zepClient.memory.get(sessionId);
 
-      const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({
-        model: MODEL_NAME,
-        systemInstruction: `${SYSTEM_PROMPT}. Here is some context about the user: ${zepSession?.context}`,
-      });
-
-      const chat = model.startChat({
-        generationConfig: {
-          maxOutputTokens: 1000,
-        },
-      });
-
-      const result = await chat.sendMessage(message);
-      // const memories = await this.zepClient.memory.search(
-      //   this.COLLECTION_NAME,
-      //   {
-      //     text: message,
-      //     metadata: {
-      //       type: "chat",
-      //       userId,
-      //     },
-      //   }
-      // );
-
-      // if (!memories[0]) {
-      //   return {
-      //     message: "I couldn't find any relevant information.",
-      //     context: {
-      //       relatedEntries: [],
-      //       growthIndicators: [],
-      //       suggestedActions: [
-      //         "Start a new journal entry",
-      //         "Review past entries",
-      //       ],
-      //     },
-      //   };
-      // }
-
-      // const relevantContent = this.extractMessageContent(memories[0]?.message);
-      // const growthIndicators = this.extractGrowthIndicators(memories[0]);
-      console.log("Response:", result.response.text());
+      const response = await claudeAIService.chat(message, zepSession?.context);
 
       return {
-        message:
-          result.response.text() || "I couldn't find any relevant information.",
-        context: {
-          sessionId: sessionId,
-        },
+        message: response,
       };
     } catch (error) {
       console.error("Failed to process chat message:", error);

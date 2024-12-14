@@ -21,6 +21,7 @@
     "test:watch": "bun test --watch src/test/**/*.test.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@elysiajs/cookie": "^0.8.0",
     "@elysiajs/cors": "^1.1.1",
     "@elysiajs/jwt": "^1.1.1",
