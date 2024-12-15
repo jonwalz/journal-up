@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { aiService } from "../services/ai.service";
+import { aiService } from "../services/ai/ai.service";
 import { authMiddleware } from "../middleware/auth";
 
 export const aiController = new Elysia({ prefix: "/ai" })

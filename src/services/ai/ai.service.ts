@@ -4,15 +4,11 @@ import type {
   GrowthIndicator,
   MemorySearchResult,
   SentimentAnalysis,
-} from "../types/ai";
-import { env } from "../config/environment";
-import type { IEntry } from "../types";
-import { AppError } from "../utils/errors";
-import { googleAIService } from "./google-ai.service";
-import { SYSTEM_PROMPT } from "../prompts/system.prompt";
-import { claudeAIService } from "./claude-ai.service";
-
-const MODEL_NAME = "models/gemini-1.5-flash";
+} from "../../types/ai";
+import { env } from "../../config/environment";
+import type { IEntry } from "../../types";
+import { AppError } from "../../utils/errors";
+import { langchainAIServiceGemini } from "./instances";
 
 interface Message {
   content: string;
@@ -203,7 +199,8 @@ export class AIService {
       });
       const zepSession = await this.zepClient.memory.get(sessionId);
 
-      const response = await claudeAIService.chat(message, zepSession?.context);
+      // Use LangChain instead of Claude
+      const response = await langchainAIServiceGemini.generateText(message);
 
       return {
         message: response,
@@ -215,6 +212,16 @@ export class AIService {
         "AI_SERVICE_ERROR",
         "Failed to process chat message"
       );
+    }
+  }
+
+  async generateText(prompt: string): Promise<string> {
+    try {
+      const response = await langchainAIServiceGemini.generateText(prompt);
+      return response;
+    } catch (error) {
+      console.error("Failed to generate text:", error);
+      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");
     }
   }
 

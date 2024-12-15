@@ -1,0 +1,122 @@
+import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { SYSTEM_PROMPT } from "../../prompts/system.prompt";
+import type { AIResponse } from "../../types/ai";
+import { AppError } from "../../utils/errors";
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
+
+interface ChatMessage {
+  role: "user" | "ai";
+  content: string;
+  timestamp: Date;
+}
+
+interface Conversation {
+  messages: ChatMessage[];
+  lastActive: Date;
+}
+
+export class LangChainAIService {
+  private llm: BaseChatModel;
+  private conversations: Map<string, Conversation> = new Map();
+
+  constructor(llm: BaseChatModel) {
+    this.llm = llm;
+  }
+
+  async chat(userId: string, message: string): Promise<AIResponse> {
+    try {
+      // Get or create conversation
+      let conversation = this.conversations.get(userId);
+      if (!conversation) {
+        conversation = {
+          messages: [],
+          lastActive: new Date(),
+        };
+        this.conversations.set(userId, conversation);
+      }
+
+      // Add user message to history
+      conversation.messages.push({
+        role: "user",
+        content: message,
+        timestamp: new Date(),
+      });
+
+      // Convert messages to LangChain format
+      const messages = [
+        new SystemMessage(SYSTEM_PROMPT),
+        ...conversation.messages.map((msg) =>
+          msg.role === "user"
+            ? new HumanMessage(msg.content)
+            : new AIMessage(msg.content)
+        ),
+      ];
+
+      // Get response from LLM
+      const response = await this.llm.call(messages);
+
+      // Add AI response to history
+      conversation.messages.push({
+        role: "ai",
+        content: String(response.content),
+        timestamp: new Date(),
+      });
+
+      // Update last active time
+      conversation.lastActive = new Date();
+
+      return {
+        message: String(response.content),
+      };
+    } catch (error) {
+      console.error("Failed to process chat message:", error);
+      throw new AppError(
+        500,
+        "AI_SERVICE_ERROR",
+        "Failed to process chat message"
+      );
+    }
+  }
+
+  async generateText(prompt: string): Promise<string> {
+    try {
+      const messages = [
+        new SystemMessage(SYSTEM_PROMPT),
+        new HumanMessage(prompt),
+      ];
+
+      const response = await this.llm.call(messages);
+      return String(response.content);
+    } catch (error) {
+      console.error("Failed to generate text:", error);
+      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");
+    }
+  }
+
+  async searchMemory(prompt: string): Promise<{ relevantMemories: string[] }> {
+    try {
+      const response = await this.generateText(prompt);
+      // Split the response into separate insights
+      const memories = response.split('\n').filter(line => line.trim().length > 0);
+      return { relevantMemories: memories };
+    } catch (error) {
+      console.error("Failed to search memory:", error);
+      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
+    }
+  }
+
+  // Clean up old conversations (optional)
+  cleanupOldConversations(maxAge: number = 86400000) {
+    // 24 hours
+    const now = new Date().getTime();
+    for (const [userId, conversation] of this.conversations.entries()) {
+      if (now - conversation.lastActive.getTime() > maxAge) {
+        this.conversations.delete(userId);
+      }
+    }
+  }
+}

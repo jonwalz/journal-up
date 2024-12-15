@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { env } from "../config/environment";
-import { SYSTEM_PROMPT } from "../prompts/system.prompt";
+import { env } from "../../config/environment";
+import { SYSTEM_PROMPT } from "../../prompts/system.prompt";
+import { AI_MODELS } from "./constants/models";
+import type { IAIService } from "./interfaces/ai-service.interface";
 
-const MODEL_NAME = "claude-3-opus-20240229";
-
-export class ClaudeAIService {
+export class ClaudeAIService implements IAIService {
   private anthropic: Anthropic;
 
   constructor() {
@@ -19,7 +19,7 @@ export class ClaudeAIService {
     }`;
 
     const response = await this.anthropic.messages.create({
-      model: MODEL_NAME,
+      model: AI_MODELS.CLAUDE,
       max_tokens: 1000,
       messages: [
         {
@@ -35,7 +35,7 @@ export class ClaudeAIService {
 
   async generateText(prompt: string): Promise<string> {
     const response = await this.anthropic.messages.create({
-      model: MODEL_NAME,
+      model: AI_MODELS.CLAUDE,
       max_tokens: 1000,
       messages: [
         {

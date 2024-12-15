@@ -1,16 +1,16 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
-import { env } from "../config/environment";
-import { SYSTEM_PROMPT } from "../prompts/system.prompt";
+import { env } from "../../config/environment";
+import { SYSTEM_PROMPT } from "../../prompts/system.prompt";
+import { AI_MODELS } from "./constants/models";
+import type { IAIService } from "./interfaces/ai-service.interface";
 
-const MODEL_NAME = "models/gemini-1.5-flash";
-
-export class GoogleAIService {
+export class GoogleAIService implements IAIService {
   private model: GenerativeModel;
 
   constructor() {
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     this.model = genAI.getGenerativeModel({
-      model: MODEL_NAME,
+      model: AI_MODELS.GEMINI,
     });
   }
 

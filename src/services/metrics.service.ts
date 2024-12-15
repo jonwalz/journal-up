@@ -1,5 +1,4 @@
 import { MetricsRepository } from "../repositories/metrics.repository";
-import { AIService } from "./ai.service";
 import type {
   Metric,
   MetricType,
@@ -10,10 +9,12 @@ import type {
 } from "../types/metrics";
 import { ValidationError } from "../utils/errors";
 import { AppError } from "../utils/errors"; // Added import statement
+import { AIService } from "./ai/ai.service";
+import type { IAIService } from "./ai/interfaces/ai-service.interface";
 
 export class MetricsService {
   private metricsRepository: MetricsRepository;
-  private aiService: AIService;
+  private aiService: IAIService;
 
   constructor() {
     this.metricsRepository = new MetricsRepository();
@@ -46,9 +47,7 @@ export class MetricsService {
     );
   }
 
-  async analyzeProgress(
-    userId: string
-  ): Promise<ProgressAnalysis> {
+  async analyzeProgress(userId: string): Promise<ProgressAnalysis> {
     // Get current period metrics (last 30 days)
     const timeRange: DateRange = {
       end: new Date(),
