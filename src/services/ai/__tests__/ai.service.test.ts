@@ -1,34 +1,77 @@
 import { AIService } from "../ai.service";
 import { ZepClient } from "@getzep/zep-cloud";
 import { AppError } from "../../../utils/errors";
-import type { IEntry } from "../../../types";
-import { env } from "../../../config/environment";
+import { describe, beforeEach, expect, mock, it, type Mock } from "bun:test";
 
 // Mock the ZepClient
-jest.mock("@getzep/zep-cloud");
+mock.module("@getzep/zep-cloud", () => {
+  return {
+    // Mock the ZepClient class
+    ZepClient: class MockZepClient {
+      constructor() {}
+
+      // Mock memory store methods
+      async memory() {
+        return {
+          searchMemory: async () => ({
+            memories: [
+              {
+                content: "Mocked memory content",
+                summary: "Mocked summary",
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          }),
+          addMemory: async () => ({ success: true }),
+          deleteMemory: async () => ({ success: true }),
+        };
+      }
+
+      // Mock session methods
+      async session() {
+        return {
+          create: async () => ({ sessionId: "mock-session-123" }),
+          get: async () => ({
+            sessionId: "mock-session-123",
+            metadata: { userId: "user-123" },
+          }),
+          update: async () => ({ success: true }),
+          delete: async () => ({ success: true }),
+        };
+      }
+    },
+  };
+});
 
 describe("AIService", () => {
   let aiService: AIService;
-  let mockZepClient: jest.Mocked<ZepClient>;
+  let mockZepClient: {
+    memory: {
+      search: Mock<any>;
+    };
+    graph: {
+      add: Mock<any>;
+    };
+  };
 
   beforeEach(() => {
     // Clear all mocks before each test
-    jest.clearAllMocks();
+    mock.restore();
 
-    // Create a mock implementation of ZepClient
+    // Create a mock implementation of ZepClient with proper typing
     mockZepClient = {
       memory: {
-        search: jest.fn(),
+        search: mock(() => Promise.resolve([])),
       },
       graph: {
-        add: jest.fn(),
+        add: mock(() => Promise.resolve()),
       },
-    } as unknown as jest.Mocked<ZepClient>;
+    };
 
     // Mock the ZepClient constructor
-    (ZepClient as jest.MockedClass<typeof ZepClient>).mockImplementation(
-      () => mockZepClient
-    );
+    mock.module("@getzep/zep-cloud", () => ({
+      ZepClient: mock(() => mockZepClient),
+    }));
 
     // Create a new instance of AIService for each test
     aiService = new AIService();
@@ -38,7 +81,7 @@ describe("AIService", () => {
     it("should successfully initialize user memory", async () => {
       // Arrange
       const userId = "test-user-id";
-      mockZepClient.memory.search.mockResolvedValueOnce([]);
+      mockZepClient.memory.search.mockResolvedValue([]);
 
       // Act
       await aiService.initializeUserMemory(userId);
@@ -60,7 +103,7 @@ describe("AIService", () => {
       // Arrange
       const userId = "test-user-id";
       const error = new Error("ZepClient error");
-      mockZepClient.memory.search.mockRejectedValueOnce(error);
+      mockZepClient.memory.search.mockRejectedValue(error);
 
       // Act & Assert
       await expect(aiService.initializeUserMemory(userId)).rejects.toThrow(

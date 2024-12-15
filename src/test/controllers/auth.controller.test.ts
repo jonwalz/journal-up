@@ -1,8 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach } from "bun:test";
 import { authController } from "../../controllers/auth.controller";
 import { createTestApp, request } from "../setup";
+import { sql } from "../../config/database";
 
 describe("Auth Controller", () => {
+  beforeEach(async () => {
+    // Clean up the database before each test using CASCADE
+    await sql`TRUNCATE TABLE users CASCADE;`;
+  });
+
   describe("POST /auth/signup", () => {
     test("should successfully create a new user", async () => {
       const app = createTestApp().use(authController);
@@ -25,7 +31,12 @@ describe("Auth Controller", () => {
       });
 
       expect(response.status).toBe(422);
-      expect(response.body.errors[0].type).toBe(50);
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors).toHaveLength(1);
+
+      const error = JSON.parse(response.body.errors[0].message);
+      expect(error.message).toBe("Expected string to match 'email' format");
+      expect(response.body.errors[0].type).toBe(52);
     });
 
     test("should return 422 for short password", async () => {
@@ -33,10 +44,17 @@ describe("Auth Controller", () => {
 
       const response = await request(app, "POST", "/auth/signup", {
         email: "test@example.com",
-        password: "short",
+        password: "123",
       });
 
       expect(response.status).toBe(422);
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors).toHaveLength(1);
+
+      const error = JSON.parse(response.body.errors[0].message);
+      expect(error.message).toBe(
+        "Expected string length greater or equal to 5"
+      );
       expect(response.body.errors[0].type).toBe(52);
     });
   });
@@ -69,7 +87,9 @@ describe("Auth Controller", () => {
         password: "wrongpassword",
       });
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error.message).toBe("User not found");
     });
   });
 

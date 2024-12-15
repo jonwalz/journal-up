@@ -200,7 +200,10 @@ export class AIService {
       const zepSession = await this.zepClient.memory.get(sessionId);
 
       // Use LangChain instead of Claude
-      const response = await langchainAIServiceGemini.generateText(message);
+      const response = await langchainAIServiceGemini.generateText(
+        message,
+        zepSession
+      );
 
       return {
         message: response,
@@ -215,10 +218,10 @@ export class AIService {
     }
   }
 
-  async generateText(prompt: string): Promise<string> {
+  async generateText(prompt: string): Promise<AIResponse> {
     try {
       const response = await langchainAIServiceGemini.generateText(prompt);
-      return response;
+      return { message: response };
     } catch (error) {
       console.error("Failed to generate text:", error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");

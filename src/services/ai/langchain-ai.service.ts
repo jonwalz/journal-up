@@ -7,6 +7,7 @@ import {
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
+import type { Memory } from "@getzep/zep-cloud/api/types/Memory";
 
 interface ChatMessage {
   role: "user" | "ai";
@@ -82,18 +83,27 @@ export class LangChainAIService {
     }
   }
 
-  async generateText(prompt: string): Promise<string> {
+  async generateText(prompt: string, zepSession?: Memory): Promise<string> {
     try {
       const messages = [
         new SystemMessage(SYSTEM_PROMPT),
+        ...(zepSession?.messages?.map((msg: any) =>
+          msg.role === "human"
+            ? new HumanMessage(msg.content)
+            : new AIMessage(msg.content)
+        ) || []),
         new HumanMessage(prompt),
       ];
 
-      const response = await this.llm.call(messages);
+      const response = await this.llm.invoke(messages);
       return String(response.content);
     } catch (error) {
-      console.error("Failed to generate text:", error);
-      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");
+      throw new AppError(
+        500,
+        "AI_SERVICE_ERROR",
+        "Failed to generate text",
+        error
+      );
     }
   }
 
@@ -101,7 +111,9 @@ export class LangChainAIService {
     try {
       const response = await this.generateText(prompt);
       // Split the response into separate insights
-      const memories = response.split('\n').filter(line => line.trim().length > 0);
+      const memories = response
+        .split("\n")
+        .filter((line) => line.trim().length > 0);
       return { relevantMemories: memories };
     } catch (error) {
       console.error("Failed to search memory:", error);

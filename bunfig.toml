@@ -1,0 +1,3 @@
+[test]
+# Include any .test.ts files in src directory
+pattern = "src/**/*.test.ts"

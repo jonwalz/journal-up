@@ -3,6 +3,7 @@ import { env } from "../../config/environment";
 import { SYSTEM_PROMPT } from "../../prompts/system.prompt";
 import { AI_MODELS } from "./constants/models";
 import type { IAIService } from "./interfaces/ai-service.interface";
+import type { AIResponse } from "../../types/ai";
 
 export class GoogleAIService implements IAIService {
   private model: GenerativeModel;
@@ -14,7 +15,7 @@ export class GoogleAIService implements IAIService {
     });
   }
 
-  async chat(message: string, context?: string): Promise<string> {
+  async chat(message: string, context?: string): Promise<AIResponse> {
     const chat = this.model.startChat({
       generationConfig: {
         maxOutputTokens: 1000,
@@ -25,12 +26,21 @@ export class GoogleAIService implements IAIService {
     });
 
     const result = await chat.sendMessage(message);
-    return result.response.text();
+    return {
+      message: result.response.text(),
+    };
   }
 
-  async generateText(prompt: string): Promise<string> {
+  async generateText(prompt: string): Promise<AIResponse> {
     const result = await this.model.generateContent(prompt);
-    return result.response.text();
+    return {
+      message: result.response.text(),
+    };
+  }
+
+  async searchMemory(prompt: string): Promise<{ relevantMemories: string[] }> {
+    const result = await this.model.generateContent(prompt);
+    return { relevantMemories: [result.response.text()] };
   }
 }
 

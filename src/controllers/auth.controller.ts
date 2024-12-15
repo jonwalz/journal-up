@@ -1,9 +1,25 @@
-import { Elysia, t } from "elysia";
+import { Elysia, t, ValidationError } from "elysia";
 import { AuthService } from "../services/auth.service";
+import { validation } from "../plugins/validation";
 
 const authService = new AuthService();
 
 export const authController = new Elysia({ prefix: "/auth" })
+  .use(validation)
+  .onError(({ error, set }) => {
+    if (error instanceof ValidationError) {
+      set.status = 422;
+      return {
+        errors: [
+          {
+            type: 52,
+            message: error.message,
+          },
+        ],
+      };
+    }
+    throw error;
+  })
   .post(
     "/signup",
     async ({ body, cookie }) => {
@@ -130,7 +146,7 @@ export const authController = new Elysia({ prefix: "/auth" })
       if (!sessionToken) {
         throw new Error("No session token provided");
       }
-      
+
       const isValid = await authService.verifySessionToken(sessionToken);
       return { valid: isValid };
     },
@@ -147,7 +163,7 @@ export const authController = new Elysia({ prefix: "/auth" })
       if (!authHeader) {
         throw new Error("No authorization header provided");
       }
-      
+
       const token = authHeader.replace("Bearer ", "");
       const isValid = await authService.verifyAuthToken(token);
       return { valid: isValid };

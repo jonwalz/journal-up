@@ -29,11 +29,13 @@ interface TestAppOptions {
 }
 
 export function createTestApp(options: TestAppOptions = {}) {
-  const app = new Elysia().use(validation).use(jwtPlugin);
+  const app = new Elysia();
 
   if (options.auth) {
     app.use(authMiddleware);
   }
+
+  app.use(validation).use(jwtPlugin);
 
   return app;
 }
