@@ -1,4 +1,4 @@
-import { Elysia, t, ValidationError } from "elysia";
+import { Elysia, t } from "elysia";
 import { AuthService } from "../services/auth.service";
 import { validation } from "../plugins/validation";
 
@@ -6,20 +6,6 @@ const authService = new AuthService();
 
 export const authController = new Elysia({ prefix: "/auth" })
   .use(validation)
-  .onError(({ error, set }) => {
-    if (error instanceof ValidationError) {
-      set.status = 422;
-      return {
-        errors: [
-          {
-            type: 52,
-            message: error.message,
-          },
-        ],
-      };
-    }
-    throw error;
-  })
   .post(
     "/signup",
     async ({ body, cookie }) => {

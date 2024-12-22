@@ -1,33 +1,11 @@
 import { Elysia, t } from "elysia";
 import { aiService } from "../services/ai/ai.service";
-import { authMiddleware } from "../middleware/auth";
-import { type AuthUser } from "../utils/jwt";
-
-type WSContext = {
-  user: AuthUser;
-};
 
 type MessageData = {
   message: string;
 };
 
-const chatSchema = {
-  body: t.Object({
-    message: t.String(),
-  }),
-  response: t.Object({
-    message: t.String(),
-    context: t.Optional(
-      t.Object({
-        relatedEntries: t.Optional(t.Array(t.String())),
-        growthIndicators: t.Optional(t.Array(t.String())),
-        suggestedActions: t.Optional(t.Array(t.String())),
-      })
-    ),
-  }),
-};
-
-export const aiController = new Elysia()
+export const aiController = new Elysia({ prefix: "/ai" })
   .ws("/chat", {
     body: t.Object({
       message: t.String(),
@@ -36,36 +14,32 @@ export const aiController = new Elysia()
       const message = data as MessageData;
       console.log("Received message:", message.message);
 
-      ws.send({
-        message: message.message,
-      });
+      try {
+        const user = ws.data.user;
 
-      // try {
-      //   const user = ws.data.user;
+        // Send chunks as they arrive
+        const onProgress = (chunk: string) => {
+          ws.send({ message: chunk, isPartial: true });
+        };
 
-      //   // Send chunks as they arrive
-      //   const onProgress = (chunk: string) => {
-      //     ws.send({ message: chunk, isPartial: true });
-      //   };
+        const response = await aiService.chat(
+          user.id,
+          message.message,
+          onProgress
+        );
 
-      //   const response = await aiService.chat(
-      //     user.id,
-      //     message.message,
-      //     onProgress
-      //   );
-
-      //   // Send final complete response
-      //   ws.send({ ...response, isComplete: true });
-      // } catch (error) {
-      //   console.error("WebSocket error:", error);
-      //   ws.send({
-      //     message: "Failed to process message",
-      //     context: {
-      //       suggestedActions: ["Please try again later"],
-      //     },
-      //     error: true,
-      //   });
-      // }
+        // Send final complete response
+        ws.send({ ...response, isComplete: true });
+      } catch (error) {
+        console.error("WebSocket error:", error);
+        ws.send({
+          message: "Failed to process message",
+          context: {
+            suggestedActions: ["Please try again later"],
+          },
+          error: true,
+        });
+      }
     },
   })
   .post(

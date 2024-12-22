@@ -8,11 +8,11 @@ import { indexController } from "./controllers/index.controller";
 import { userInfoController } from "./controllers/user-info.controller";
 
 app
+  .use(aiController)
   .use(indexController)
   .use(authController)
   .use(journalController)
   .use(metricsController)
-  .use(aiController)
   .use(settingsController)
   .use(userInfoController)
   .onError(({ error, set }) => {
