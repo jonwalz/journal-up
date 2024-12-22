@@ -28,7 +28,11 @@ export class LangChainAIService {
     this.llm = llm;
   }
 
-  async chat(userId: string, message: string): Promise<AIResponse> {
+  async chat(
+    userId: string,
+    message: string,
+    onProgress?: (chunk: string) => void
+  ): Promise<AIResponse> {
     try {
       // Get or create conversation
       let conversation = this.conversations.get(userId);
@@ -57,13 +61,25 @@ export class LangChainAIService {
         ),
       ];
 
-      // Get response from LLM
-      const response = await this.llm.call(messages);
+      let fullResponse = "";
+
+      // Get streaming response from LLM
+      const stream = await this.llm.stream(messages);
+
+      for await (const chunk of stream) {
+        const chunkText = String(chunk.content);
+        fullResponse += chunkText;
+
+        // Send progress if callback is provided
+        if (onProgress) {
+          onProgress(chunkText);
+        }
+      }
 
       // Add AI response to history
       conversation.messages.push({
         role: "ai",
-        content: String(response.content),
+        content: fullResponse,
         timestamp: new Date(),
       });
 
@@ -71,7 +87,7 @@ export class LangChainAIService {
       conversation.lastActive = new Date();
 
       return {
-        message: String(response.content),
+        message: fullResponse,
       };
     } catch (error) {
       console.error("Failed to process chat message:", error);

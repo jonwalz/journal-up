@@ -10,21 +10,9 @@ import type { IEntry } from "../../types";
 import { AppError } from "../../utils/errors";
 import { langchainAIServiceGemini } from "./instances";
 
-interface Message {
-  content: string;
-  role?: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface SearchResult {
-  message?: Message | string;
-  score?: number;
-  metadata?: Record<string, unknown>;
-}
-
 export class AIService {
   private zepClient: ZepClient;
-  private readonly COLLECTION_NAME = "journal_entries";
+  private readonly COLLECTION_NAME = "journal-entries";
 
   constructor() {
     this.zepClient = new ZepClient({
@@ -57,21 +45,205 @@ export class AIService {
         this.COLLECTION_NAME,
         {
           text: query,
+        }
+      );
+
+      if (!memories[0]) {
+        return { relevantMemories: [], score: 0 };
+      }
+
+      return this.convertZepMemoryResult(memories[0]);
+    } catch (error) {
+      console.error("Failed to search memory:", error);
+      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
+    }
+  }
+
+  async chat(
+    userId: string,
+    message: string,
+    onProgress?: (chunk: string) => void
+  ): Promise<AIResponse> {
+    const sessionId = Math.random().toString(36).slice(2);
+
+    try {
+      // Create zep memory session
+      await this.zepClient.memory.addSession({
+        sessionId,
+        userId,
+      });
+
+      // Add message to memory
+      await this.zepClient.memory.add(sessionId, {
+        messages: [
+          {
+            content: message,
+            roleType: "user",
+            metadata: {
+              type: "chat",
+              userId,
+            },
+          },
+        ],
+      });
+
+      // Get session memory
+      const zepSession = await this.zepClient.memory.get(sessionId);
+
+      // Use LangChain for chat with streaming support
+      const response = await langchainAIServiceGemini.chat(
+        userId,
+        message,
+        onProgress
+      );
+
+      // Store AI response in memory
+      await this.zepClient.memory.add(sessionId, {
+        messages: [
+          {
+            content: response.message,
+            roleType: "assistant",
+            metadata: {
+              type: "chat",
+              userId,
+            },
+          },
+        ],
+      });
+
+      return response;
+    } catch (error) {
+      console.error("Failed to process chat message:", error);
+      throw new AppError(
+        500,
+        "AI_SERVICE_ERROR",
+        "Failed to process chat message"
+      );
+    }
+  }
+
+  async generateText(prompt: string): Promise<AIResponse> {
+    try {
+      const response = await langchainAIServiceGemini.generateText(prompt);
+      return { message: response };
+    } catch (error) {
+      console.error("Failed to generate text:", error);
+      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");
+    }
+  }
+
+  private extractMessageContent(
+    message: string | undefined
+  ): string | undefined {
+    if (!message) return undefined;
+    return message;
+  }
+
+  private extractSentiment(memory: MemorySearchResult): SentimentAnalysis {
+    const score = memory?.score ?? 0;
+    let label: SentimentAnalysis["label"] = "neutral";
+
+    if (score > 0.3) label = "positive";
+    else if (score < -0.3) label = "negative";
+
+    return {
+      score,
+      label,
+      confidence: Math.abs(score),
+    };
+  }
+
+  private extractGrowthIndicators(
+    memory: MemorySearchResult
+  ): GrowthIndicator[] {
+    const content = this.extractMessageContent(memory.relevantMemories[0]);
+    if (!content) return [];
+
+    const indicators = content
+      .split("\n")
+      .filter((line: string) => line.startsWith("- Indicator:"))
+      .map((line: string) => {
+        const [type, evidence] = line
+          .replace("- Indicator:", "")
+          .split(":")
+          .map((s) => s.trim());
+        return {
+          type: type.toLowerCase() as GrowthIndicator["type"],
+          evidence: evidence || "",
+          confidence: memory?.score || 0,
+        };
+      });
+
+    return indicators.length > 0
+      ? indicators
+      : [
+          {
+            type: "learning",
+            evidence: "No specific indicators found",
+            confidence: 0,
+          },
+        ];
+  }
+
+  private generateSuggestedActions(memory: MemorySearchResult): string[] {
+    const content = this.extractMessageContent(memory.relevantMemories[0]);
+    if (!content) return [];
+
+    const actions = content
+      .split("\n")
+      .filter((line: string) => line.startsWith("- Action:"))
+      .map((line: string) => line.replace("- Action:", "").trim());
+
+    return actions.length > 0
+      ? actions
+      : ["Reflect on your progress", "Set a new goal", "Review past entries"];
+  }
+
+  private convertZepMemoryResult(zepMemory: any): MemorySearchResult {
+    return {
+      relevantMemories: [zepMemory.message?.content || ""],
+      score: zepMemory.score || 0,
+    };
+  }
+
+  async analyzeEntryContent(content: string): Promise<{
+    sentiment: SentimentAnalysis;
+    growthIndicators: GrowthIndicator[];
+  }> {
+    try {
+      const memories = await this.zepClient.memory.search(
+        this.COLLECTION_NAME,
+        {
+          text: content,
           metadata: {
-            type: "search",
+            type: "analysis",
           },
         }
       );
 
+      if (!memories[0]) {
+        throw new AppError(
+          500,
+          "AI_SERVICE_ERROR",
+          "No analysis results found"
+        );
+      }
+
+      const convertedMemory = this.convertZepMemoryResult(memories[0]);
+      const sentiment = this.extractSentiment(convertedMemory);
+      const growthIndicators = this.extractGrowthIndicators(convertedMemory);
+
       return {
-        relevantMemories: memories
-          .map((r) => this.extractMessageContent(r.message))
-          .filter((content): content is string => content !== undefined),
-        score: memories[0]?.score || 0,
+        sentiment,
+        growthIndicators,
       };
     } catch (error) {
-      console.error("Failed to search memory:", error);
-      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to search memory");
+      console.error("Failed to analyze entry content:", error);
+      throw new AppError(
+        500,
+        "AI_SERVICE_ERROR",
+        "Failed to analyze entry content"
+      );
     }
   }
 
@@ -99,8 +271,9 @@ export class AIService {
         );
       }
 
-      const sentiment = this.extractSentiment(memories[0]);
-      const growthIndicators = this.extractGrowthIndicators(memories[0]);
+      const convertedMemory = this.convertZepMemoryResult(memories[0]);
+      const sentiment = this.extractSentiment(convertedMemory);
+      const growthIndicators = this.extractGrowthIndicators(convertedMemory);
 
       return {
         sentiment,
@@ -109,46 +282,6 @@ export class AIService {
     } catch (error) {
       console.error("Failed to analyze entry:", error);
       throw new AppError(500, "AI_SERVICE_ERROR", "Failed to analyze entry");
-    }
-  }
-
-  async analyzeEntryContent(content: string): Promise<{
-    sentiment: SentimentAnalysis;
-    growthIndicators: GrowthIndicator[];
-  }> {
-    try {
-      const memories = await this.zepClient.memory.search(
-        this.COLLECTION_NAME,
-        {
-          text: content,
-          metadata: {
-            type: "analysis",
-          },
-        }
-      );
-
-      if (!memories[0]) {
-        throw new AppError(
-          500,
-          "AI_SERVICE_ERROR",
-          "No analysis results found"
-        );
-      }
-
-      const sentiment = this.extractSentiment(memories[0]);
-      const growthIndicators = this.extractGrowthIndicators(memories[0]);
-
-      return {
-        sentiment,
-        growthIndicators,
-      };
-    } catch (error) {
-      console.error("Failed to analyze entry content:", error);
-      throw new AppError(
-        500,
-        "AI_SERVICE_ERROR",
-        "Failed to analyze entry content"
-      );
     }
   }
 
@@ -172,120 +305,6 @@ export class AIService {
         "Failed to add data to graph"
       );
     }
-  }
-
-  async chat(userId: string, message: string): Promise<AIResponse> {
-    // generate session id
-    const sessionId = Math.random().toString(36).slice(2);
-
-    try {
-      // create zep memory session
-      await this.zepClient.memory.addSession({
-        sessionId,
-        userId,
-      });
-
-      await this.zepClient.memory.add(sessionId, {
-        messages: [
-          {
-            content: message,
-            roleType: "user",
-            metadata: {
-              type: "chat",
-              userId,
-            },
-          },
-        ],
-      });
-      const zepSession = await this.zepClient.memory.get(sessionId);
-
-      // Use LangChain instead of Claude
-      const response = await langchainAIServiceGemini.generateText(
-        message,
-        zepSession
-      );
-
-      return {
-        message: response,
-      };
-    } catch (error) {
-      console.error("Failed to process chat message:", error);
-      throw new AppError(
-        500,
-        "AI_SERVICE_ERROR",
-        "Failed to process chat message"
-      );
-    }
-  }
-
-  async generateText(prompt: string): Promise<AIResponse> {
-    try {
-      const response = await langchainAIServiceGemini.generateText(prompt);
-      return { message: response };
-    } catch (error) {
-      console.error("Failed to generate text:", error);
-      throw new AppError(500, "AI_SERVICE_ERROR", "Failed to generate text");
-    }
-  }
-
-  private extractMessageContent(
-    message: string | Message | undefined
-  ): string | undefined {
-    if (!message) return undefined;
-    if (typeof message === "string") return message;
-    return message.content;
-  }
-
-  private extractSentiment(memory: SearchResult): SentimentAnalysis {
-    const score = memory?.score ?? 0;
-    let label: SentimentAnalysis["label"] = "neutral";
-
-    if (score > 0.3) label = "positive";
-    else if (score < -0.3) label = "negative";
-
-    return {
-      score,
-      label,
-      confidence: Math.abs(score),
-    };
-  }
-
-  private extractGrowthIndicators(memory: SearchResult): GrowthIndicator[] {
-    const indicators: GrowthIndicator[] = [];
-    const types: GrowthIndicator["type"][] = [
-      "resilience",
-      "effort",
-      "challenge",
-      "feedback",
-      "learning",
-    ];
-
-    types.forEach((type) => {
-      const confidence = Math.random(); // Replace with actual logic
-      if (confidence > 0.5) {
-        indicators.push({
-          type,
-          confidence,
-          evidence: this.extractMessageContent(memory.message) || "",
-        });
-      }
-    });
-
-    return indicators;
-  }
-
-  private generateSuggestedActions(memory: SearchResult): string[] {
-    const content = this.extractMessageContent(memory?.message);
-    if (!content) return [];
-
-    const actions = content
-      .split("\n")
-      .filter((line: string) => line.startsWith("- Action:"))
-      .map((line: string) => line.replace("- Action:", "").trim());
-
-    return actions.length > 0
-      ? actions
-      : ["Reflect on your progress", "Set a new goal", "Review past entries"];
   }
 }
 
