@@ -98,18 +98,18 @@ export class AIService {
       );
 
       // Store AI response in memory
-      await this.zepClient.memory.add(sessionId, {
-        messages: [
-          {
-            content: response.message,
-            roleType: "assistant",
-            metadata: {
-              type: "chat",
-              userId,
-            },
-          },
-        ],
-      });
+      // await this.zepClient.memory.add(sessionId, {
+      //   messages: [
+      //     {
+      //       content: response.message,
+      //       roleType: "assistant",
+      //       metadata: {
+      //         type: "chat",
+      //         userId,
+      //       },
+      //     },
+      //   ],
+      // });
 
       return response;
     } catch (error) {
