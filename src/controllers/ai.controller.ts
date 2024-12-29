@@ -1,57 +1,18 @@
 import { Elysia, t } from "elysia";
 import { aiService } from "../services/ai/ai.service";
-import { verifyToken } from "../utils/jwt";
 
 type MessageData = {
   type: string;
   payload: {
+    userId: string;
     id: string;
     message: string;
     timestamp: string;
-    userId: string;
   };
 };
 
 export const aiController = new Elysia({ prefix: "/ai" })
   .ws("/chat", {
-    // schema: {
-    //   body: t.Object({
-    //     message: t.String(),
-    //   }),
-    //   response: t.Object({
-    //     message: t.String(),
-    //     isPartial: t.Optional(t.Boolean()),
-    //     isComplete: t.Optional(t.Boolean()),
-    //   }),
-    //   // Add headers if needed
-    //   headers: t.Object({
-    //     authorization: t.String(),
-    //     "x-session-token": t.String(),
-    //   }),
-    // },
-    // open: async ({ data, close }) => {
-    //   const authHeader = data.headers.authorization;
-    //   const sessionToken = data.headers["x-session-token"];
-
-    //   if (!authHeader || !sessionToken) {
-    //     close();
-    //     return;
-    //   }
-
-    //   const [bearer, token] = authHeader.split(" ");
-    //   if (bearer !== "Bearer" || !token) {
-    //     close();
-    //     return;
-    //   }
-
-    //   try {
-    //     const user = await verifyToken(token);
-    //     // Store user in the WebSocket instance's custom property
-    //     (data as any).user = user;
-    //   } catch (error) {
-    //     close();
-    //   }
-    // },
     body: t.Object({
       type: t.String(),
       payload: t.Object({
@@ -60,13 +21,38 @@ export const aiController = new Elysia({ prefix: "/ai" })
         timestamp: t.String(),
       }),
     }),
+    open: ({ data }) => {
+      console.log("WebSocket: Connection opened", {
+        headers: data.headers,
+        url: data.request?.url,
+        method: data.request?.method,
+      });
+    },
+    close: ({ data, code, message }) => {
+      console.log("WebSocket: Connection closed", {
+        code,
+        message,
+        headers: data.headers,
+      });
+    },
+    error: ({ error }) => {
+      console.error("WebSocket: Error occurred", {
+        error,
+        message: error.message,
+        stack: error.stack,
+      });
+    },
     message: async (ws, data: unknown) => {
-      const headers = ws.data.headers;
-      console.log("Headers: ", headers);
-      const message = data as MessageData;
-      console.log("Received message:", message.payload.message);
-
       try {
+        const headers = ws.data.headers;
+        console.log("WebSocket: Message received", {
+          headers,
+          data,
+        });
+
+        const message = data as MessageData;
+        console.log("Received message:", message.payload);
+
         // Send chunks as they arrive
         const onProgress = (chunk: string) => {
           ws.send({ message: chunk, isPartial: true });
@@ -86,13 +72,18 @@ export const aiController = new Elysia({ prefix: "/ai" })
           id: message.payload.id,
         });
       } catch (error) {
-        console.error("WebSocket error:", error);
+        console.error("WebSocket: Error processing message", {
+          error,
+          data,
+        });
+        // Send error back to client
         ws.send({
-          message: "Failed to process message",
-          context: {
-            suggestedActions: ["Please try again later"],
+          type: "error",
+          payload: {
+            id: (data as any)?.payload?.id || "unknown",
+            message: "Error processing message",
+            timestamp: new Date().toISOString(),
           },
-          error: true,
         });
       }
     },
