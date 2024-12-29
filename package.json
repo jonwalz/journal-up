@@ -29,7 +29,7 @@
     "@elysiajs/websocket": "^0.2.8",
     "@getzep/zep-cloud": "^2.1.1",
     "@google-ai/generativelanguage": "^2.8.0",
-    "@google/generative-ai": "@0.21.0",
+    "@google/generative-ai": "^0.21.0",
     "@langchain/core": "^0.3.23",
     "@langchain/google-genai": "^0.1.5",
     "@langchain/langgraph": "^0.2.33",
