@@ -28,7 +28,15 @@ export const aiController = new Elysia({ prefix: "/ai" })
         method: data.request?.method,
       });
     },
-    close: ({ data, code, message }) => {
+    close: ({
+      data,
+      code,
+      message,
+    }: {
+      data: any;
+      code?: number;
+      message?: string;
+    }) => {
       console.log("WebSocket: Connection closed", {
         code,
         message,
