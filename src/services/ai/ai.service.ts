@@ -8,7 +8,7 @@ import type {
 import { env } from "../../config/environment";
 import type { IEntry } from "../../types";
 import { AppError } from "../../utils/errors";
-import { langchainAIServiceGemini } from "./instances";
+import { langchainAIServiceClaude } from "./instances";
 
 export class AIService {
   private zepClient: ZepClient;
@@ -90,26 +90,35 @@ export class AIService {
       // Get session memory
       const zepSession = await this.zepClient.memory.get(sessionId);
 
+      // Parse message and add zepSession.facts as context
+      const parsedMessage = JSON.parse(message);
+      const messageWithContext = [
+        ...parsedMessage,
+        { context: zepSession.context },
+      ];
+      console.log("Message with context:", messageWithContext);
+
       // Use LangChain for chat with streaming support
-      const response = await langchainAIServiceGemini.chat(
+      const response = await langchainAIServiceClaude.chat(
         userId,
-        message,
+        JSON.stringify(messageWithContext),
         onProgress
       );
 
+      console.log("AI Chat Response:", response);
       // Store AI response in memory
-      // await this.zepClient.memory.add(sessionId, {
-      //   messages: [
-      //     {
-      //       content: response.message,
-      //       roleType: "assistant",
-      //       metadata: {
-      //         type: "chat",
-      //         userId,
-      //       },
-      //     },
-      //   ],
-      // });
+      await this.zepClient.memory.add(sessionId, {
+        messages: [
+          {
+            content: response.message,
+            roleType: "assistant",
+            metadata: {
+              type: "chat",
+              userId,
+            },
+          },
+        ],
+      });
 
       return response;
     } catch (error) {
@@ -124,7 +133,7 @@ export class AIService {
 
   async generateText(prompt: string): Promise<AIResponse> {
     try {
-      const response = await langchainAIServiceGemini.generateText(prompt);
+      const response = await langchainAIServiceClaude.generateText(prompt);
       return { message: response };
     } catch (error) {
       console.error("Failed to generate text:", error);
